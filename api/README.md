@@ -8,8 +8,10 @@ From `api/`, install dependencies and copy the environment template:
 
 ```bash
 npm install
-Copy-Item .env.example .env
+cp .env.example .env
 ```
+
+In PowerShell, use `Copy-Item .env.example .env` instead.
 
 Configure these values in `.env`:
 
