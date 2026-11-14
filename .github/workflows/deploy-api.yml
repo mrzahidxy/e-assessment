@@ -93,7 +93,7 @@ jobs:
             api/docker-compose.yml \
             "$VPS_USER@$VPS_HOST:/opt/apps/e-exam/docker-compose.yml"
 
-      - name: Deploy and verify container health
+      - name: Deploy and verify database readiness
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -103,4 +103,4 @@ jobs:
           IMAGE="docker.io/$DOCKERHUB_USERNAME/e-exam-api:$IMAGE_TAG"
           ssh -i "$HOME/.ssh/deploy_key" -o StrictHostKeyChecking=yes \
             "$VPS_USER@$VPS_HOST" \
-            "cd /opt/apps/e-exam && API_IMAGE='$IMAGE' docker compose -f docker-compose.yml pull api && API_IMAGE='$IMAGE' docker compose -f docker-compose.yml up -d --no-build --remove-orphans api && for attempt in \$(seq 1 30); do state=\$(docker inspect --format='{{.State.Health.Status}}' e-exam-api 2>/dev/null || true); if [ \"\$state\" = healthy ]; then exit 0; fi; sleep 2; done; docker logs --tail=100 e-exam-api; exit 1"
+            "cd /opt/apps/e-exam && API_IMAGE='$IMAGE' docker compose -f docker-compose.yml pull api && API_IMAGE='$IMAGE' docker compose -f docker-compose.yml up -d --no-build --remove-orphans api && for attempt in \$(seq 1 30); do if docker exec e-exam-api node -e 'fetch(\"http://127.0.0.1:8080/health\", { signal: AbortSignal.timeout(5000) }).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'; then exit 0; fi; sleep 2; done; docker logs --tail=100 e-exam-api; exit 1"
