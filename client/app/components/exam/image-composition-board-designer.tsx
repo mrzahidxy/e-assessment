@@ -473,7 +473,7 @@ export function ImageCompositionBoardDesigner({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="space-y-3 rounded-lg border border-border bg-slate-50 p-3">
+      <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
@@ -613,7 +613,7 @@ export function ImageCompositionBoardDesigner({
       </div>
 
       {error ? (
-        <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {error}
         </div>
       ) : null}
@@ -622,7 +622,7 @@ export function ImageCompositionBoardDesigner({
         ref={canvasRef}
         className={cn(
           "relative overflow-hidden rounded-xl border shadow-sm",
-          dropActive ? "border-blue-400 ring-2 ring-blue-200" : "border-border"
+          dropActive ? "border-primary/50 ring-2 ring-primary/20" : "border-border"
         )}
         style={{
           aspectRatio: `${currentTemplate.canvas.width} / ${currentTemplate.canvas.height}`,
@@ -683,7 +683,7 @@ export function ImageCompositionBoardDesigner({
               <div
                 className={cn(
                   "relative h-full w-full overflow-hidden rounded-md border bg-white shadow-sm",
-                  isSelected ? "border-blue-500 ring-2 ring-blue-400/60" : "border-slate-200"
+                  isSelected ? "border-primary ring-2 ring-primary/40/60" : "border-border"
                 )}
               >
                 <img
@@ -694,15 +694,15 @@ export function ImageCompositionBoardDesigner({
                 />
                 {isSelected ? (
                   <>
-                    <div className="pointer-events-none absolute inset-0 border-2 border-dashed border-blue-500/80" />
-                    <div className="absolute left-1 top-1 rounded bg-blue-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white shadow">
+                    <div className="pointer-events-none absolute inset-0 border-2 border-dashed border-primary/80" />
+                    <div className="absolute left-1 top-1 rounded bg-primary/90 px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground shadow">
                       {asset.name ?? "Asset"}
                     </div>
                     <button
                       type="button"
                       aria-label="Resize asset"
                       title="Resize"
-                      className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded bg-blue-600 text-white shadow hover:bg-blue-700"
+                      className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground shadow hover:bg-primary/90"
                       onPointerDown={(event) => startResize(event, asset)}
                     >
                       <Plus className="h-3 w-3 rotate-45" />

@@ -24,7 +24,7 @@ const HtmlContent = memo(function HtmlContent({
 
   return (
     <div
-      className="prose prose-sm max-w-none text-gray-700"
+      className="prose prose-sm max-w-none text-foreground"
       dangerouslySetInnerHTML={{ __html: decodeHtml(html) }}
     />
   );
@@ -45,9 +45,9 @@ const QuestionHeader = memo(function QuestionHeader({
   onClose?: () => void;
 }) {
   return (
-    <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
-      <div className="px-5 py-3 bg-linear-to-r from-blue-50 to-blue-100 border-b border-blue-200 flex items-center justify-between">
-        <h2 className="text-base font-bold text-gray-900">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex items-center justify-between border-b border-border bg-primary/5 px-5 py-3">
+        <h2 className="text-base font-bold text-foreground">
           Question {position} ({totalMarks} marks)
         </h2>
         {onClose && (
@@ -64,7 +64,7 @@ const QuestionHeader = memo(function QuestionHeader({
 
       {/* Stimulus/Passage */}
       {hasStimulus && (
-        <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+        <div className="border-b border-border bg-muted/40 px-5 py-4">
           <HtmlContent html={contentHtml} />
         </div>
       )}

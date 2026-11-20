@@ -39,7 +39,7 @@ function HtmlContent({ html }: { html: string }) {
 
   return (
     <div
-      className="prose prose-sm max-w-none text-gray-700"
+      className="prose prose-sm max-w-none text-foreground"
       dangerouslySetInnerHTML={{ __html: decodeHtml(html) }}
     />
   );
@@ -70,26 +70,26 @@ export const SubQuestionCard = memo(function SubQuestionCard({
 
   return (
     <div
-      className="border border-gray-300 rounded bg-white h-full flex flex-col"
+      className="flex h-full flex-col rounded border border-border bg-card"
       id={`subq-${subQuestionId}`}
     >
       {/* Header */}
-      <div className="px-4 py-2 border-b border-gray-300 bg-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900">
+      <div className="border-b border-border bg-muted/40 px-4 py-2">
+        <h3 className="text-sm font-semibold text-foreground">
           Question {questionPosition}
           {label} ({marks} mark{marks !== 1 ? "s" : ""})
         </h3>
       </div>
 
       {/* Prompt */}
-      <div className="px-4 py-3 border-b border-gray-300">
+      <div className="border-b border-border px-4 py-3">
         <HtmlContent html={prompt} />
       </div>
 
       {/* Answer area */}
       <div className="px-4 py-3 flex-1">
         {readonly && (
-          <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+          <div className="mb-3 p-2 bg-warning/15 border border-warning/30 rounded text-sm text-warning-foreground">
             Reading time - answers are disabled
           </div>
         )}
@@ -98,10 +98,10 @@ export const SubQuestionCard = memo(function SubQuestionCard({
             {mcqOptions.options.map((option, idx) => (
               <label
                 key={idx}
-                className={`flex items-center gap-3 p-3 border border-gray-200 rounded ${
+                className={`flex items-center gap-3 rounded border border-border p-3 ${
                   readonly
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : "hover:bg-gray-50 cursor-pointer"
+                    ? "bg-muted/50 cursor-not-allowed"
+                    : "hover:bg-muted/40 cursor-pointer"
                 }`}
               >
                 <input
@@ -110,10 +110,10 @@ export const SubQuestionCard = memo(function SubQuestionCard({
                   value={option.value}
                   checked={answer === option.value}
                   onChange={(e) => onAnswerChange(e.target.value)}
-                  className="w-4 h-4 text-blue-600"
+                  className="h-4 w-4 accent-primary"
                   disabled={readonly}
                 />
-                <span className="text-sm text-gray-900">
+                <span className="text-sm text-foreground">
                   <span className="font-medium">{option.label}</span>
                 </span>
               </label>

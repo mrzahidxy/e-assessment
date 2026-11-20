@@ -220,7 +220,7 @@ export function GraphAnswerEditor({
   return (
     <div className={className ?? "space-y-3"}>
       {!readonly && (
-        <div className="flex flex-nowrap items-center gap-1 overflow-x-auto rounded-md border border-border bg-slate-50 p-1">
+        <div className="flex flex-nowrap items-center gap-1 overflow-x-auto rounded-md border border-border bg-muted/30 p-1">
           <Button
             type="button"
             size="sm"
@@ -258,7 +258,7 @@ export function GraphAnswerEditor({
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 w-8 shrink-0 p-0 text-red-600 hover:text-red-700"
+            className="h-8 w-8 shrink-0 p-0 text-destructive hover:text-destructive"
             onClick={clearAll}
             title="Clear"
             aria-label="Clear"

@@ -34,21 +34,21 @@ export function ExpressionDisplay() {
   const afterCursor = expression.slice(cursorPosition);
 
   return (
-    <div className="bg-gray-50 border-b border-gray-200">
+    <div className="bg-muted/30 border-b border-border">
       {/* Input row - where user types */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
         <div
           ref={displayRef}
           className="flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300"
         >
-          <div className="min-h-7 font-mono text-base text-gray-900 whitespace-nowrap inline-flex">
+          <div className="min-h-7 font-mono text-base text-foreground whitespace-nowrap inline-flex">
             <span>{beforeCursor}</span>
             <span
               data-cursor
-              className="inline-block w-0.5 h-5 bg-blue-600 animate-pulse"
+              className="inline-block w-0.5 h-5 bg-primary animate-pulse"
             />
             <span>{afterCursor}</span>
-            {!expression && <span className="text-gray-400">\u00A0</span>}
+            {!expression && <span className="text-muted-foreground">\u00A0</span>}
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -77,7 +77,7 @@ export function ExpressionDisplay() {
 
       {/* Result row - shows calculation result */}
       <div className="px-4 py-2">
-        <div className="min-h-7 font-mono text-sm text-gray-600 whitespace-nowrap overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
+        <div className="min-h-7 font-mono text-sm text-muted-foreground whitespace-nowrap overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
           {resultDisplay || "\u00A0"}
         </div>
       </div>

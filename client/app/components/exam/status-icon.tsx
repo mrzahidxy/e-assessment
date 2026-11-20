@@ -12,8 +12,8 @@ export function StatusIcon({
   percentage,
   size = 24,
   strokeWidth = 12,
-  color = "#000",
-  bgColor = "#fff",
+  color = "var(--primary-foreground)",
+  bgColor = "var(--primary-foreground)",
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -22,8 +22,8 @@ export function StatusIcon({
   const offset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="w-7 h-7 bg-[#104b9b] rounded-xs flex items-center justify-center">
-      <svg width={size} height={size}>
+    <div className="flex h-7 w-7 items-center justify-center rounded-xs bg-primary">
+      <svg width={size} height={size} aria-hidden="true">
         {/* Background circle */}
         <circle
           cx={size / 2}
@@ -31,6 +31,7 @@ export function StatusIcon({
           r={radius}
           fill="none"
           stroke={bgColor}
+          strokeOpacity={0.35}
           strokeWidth={strokeWidth}
         />
 

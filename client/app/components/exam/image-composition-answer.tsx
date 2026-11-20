@@ -381,7 +381,7 @@ export function ImageCompositionAnswerEditor({
               }}
               onPointerDown={(event) => startDrag(event, element)}
             >
-              <div className="relative h-full w-full overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+              <div className="relative h-full w-full overflow-hidden rounded-md border border-border bg-card shadow-sm">
                 <img
                   src={element.src}
                   alt={element.name ?? "Asset"}

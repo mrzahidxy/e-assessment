@@ -111,7 +111,7 @@ function StandardFormInput({
   };
 
   const inputClass =
-    "h-8 rounded-sm border border-pink-300 bg-pink-100 px-2 text-center text-base shadow-none focus-visible:ring-1";
+    "h-8 rounded-sm border border-answer-cell bg-answer-cell px-2 text-center text-base shadow-none focus-visible:ring-1";
 
   if (preview) {
     return (
@@ -203,7 +203,7 @@ export function InteractiveTableCellRenderer({
             event.dataTransfer.effectAllowed = "copy";
           }}
           className={cn(
-            "inline-flex min-w-10 items-center justify-center rounded border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm",
+            "inline-flex min-w-10 items-center justify-center rounded border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm",
             !readonly && "cursor-grab active:cursor-grabbing"
           )}
         >
@@ -221,7 +221,7 @@ export function InteractiveTableCellRenderer({
     if (cell.type === "select") {
       return (
         <div className="flex min-h-12 items-center px-2.5 py-2">
-          <div className="w-full rounded-sm border border-dashed border-slate-300 bg-slate-50 px-2 py-1.5 text-sm text-slate-500">
+          <div className="w-full rounded-sm border border-dashed border-border bg-muted/30 px-2 py-1.5 text-sm text-muted-foreground">
             {decodeHtml(cell.placeholder) || "Select"}
           </div>
         </div>
@@ -233,12 +233,12 @@ export function InteractiveTableCellRenderer({
       return (
         <div
           className={cn(
-            "min-h-10 bg-pink-50 p-1.5",
+            "min-h-10 bg-answer-cell/40 p-1.5",
             hasInlineText && "flex items-center justify-center gap-2 bg-white text-lg text-foreground"
           )}
         >
           {cell.before ? <span>{decodeHtml(cell.before)}</span> : null}
-          <div className="flex min-h-8 min-w-14 items-center justify-center rounded-sm border border-dashed border-pink-300 bg-pink-100 px-2.5 py-1.5 text-sm text-pink-700">
+          <div className="flex min-h-8 min-w-14 items-center justify-center rounded-sm border border-dashed border-answer-cell bg-answer-cell px-2.5 py-1.5 text-sm text-answer-cell-foreground">
             {decodeHtml(cell.placeholder) || "Drop here"}
           </div>
           {cell.after ? <span>{decodeHtml(cell.after)}</span> : null}
@@ -250,7 +250,7 @@ export function InteractiveTableCellRenderer({
       return (
         <div className="flex min-h-12 flex-wrap items-center justify-center gap-2 px-2.5 py-2 text-lg text-foreground">
           {cell.before ? <span>{decodeHtml(cell.before)}</span> : null}
-          <span className="inline-flex min-h-9 min-w-14 items-center justify-center rounded-sm border border-dashed border-pink-300 bg-pink-100 px-3 py-1 text-base text-pink-700">
+          <span className="inline-flex min-h-9 min-w-14 items-center justify-center rounded-sm border border-dashed border-answer-cell bg-answer-cell px-3 py-1 text-base text-answer-cell-foreground">
             {decodeHtml(cell.placeholder) || ""}
           </span>
           {cell.after ? <span>{decodeHtml(cell.after)}</span> : null}
@@ -273,14 +273,14 @@ export function InteractiveTableCellRenderer({
       <div
         className={cn(
           "flex min-h-14 items-center gap-2 px-3 py-2 text-lg text-foreground",
-          hasInlineText ? "justify-center" : "bg-pink-100"
+          hasInlineText ? "justify-center" : "bg-answer-cell"
         )}
       >
         {cell.before?.trim() ? (
           <span className="text-base text-foreground">{decodeHtml(cell.before)}</span>
         ) : null}
         {hasInlineText ? (
-          <div className="h-9 min-w-24 rounded-sm border border-pink-300 bg-pink-100" />
+          <div className="h-9 min-w-24 rounded-sm border border-answer-cell bg-answer-cell" />
         ) : null}
         {cell.after?.trim() ? (
           <span className="text-base text-foreground">{decodeHtml(cell.after)}</span>
@@ -298,7 +298,7 @@ export function InteractiveTableCellRenderer({
               "w-full rounded-sm border px-2 py-1.5 text-sm",
               value.trim()
                 ? "border-border bg-white text-foreground"
-                : "border-dashed border-amber-300 bg-amber-50 text-amber-700"
+                : "border-dashed border-warning/30 bg-warning/15 text-warning-foreground"
             )}
           >
             {value.trim() || MISSING_LABEL}
@@ -312,7 +312,7 @@ export function InteractiveTableCellRenderer({
       return (
         <div
           className={cn(
-            "min-h-10 bg-pink-50 p-1.5",
+            "min-h-10 bg-answer-cell/40 p-1.5",
             hasInlineText && "flex items-center justify-center gap-2 bg-white text-lg text-foreground"
           )}
         >
@@ -321,8 +321,8 @@ export function InteractiveTableCellRenderer({
             className={cn(
               "flex min-h-8 min-w-14 items-center justify-center rounded-sm border px-2.5 py-1.5 text-sm",
               value.trim()
-                ? "border-pink-300 bg-white text-foreground"
-                : "border-dashed border-amber-300 bg-amber-50 text-amber-700"
+                ? "border-answer-cell bg-white text-foreground"
+                : "border-dashed border-warning/30 bg-warning/15 text-warning-foreground"
             )}
           >
             {value.trim() || MISSING_LABEL}
@@ -340,8 +340,8 @@ export function InteractiveTableCellRenderer({
             className={cn(
               "inline-flex min-h-9 min-w-14 items-center justify-center rounded-sm border px-3 py-1 text-base",
               value.trim()
-                ? "border-pink-300 bg-white text-foreground"
-                : "border-dashed border-amber-300 bg-amber-50 text-amber-700"
+                ? "border-answer-cell bg-white text-foreground"
+                : "border-dashed border-warning/30 bg-warning/15 text-warning-foreground"
             )}
           >
             {value.trim() || MISSING_LABEL}
@@ -366,7 +366,7 @@ export function InteractiveTableCellRenderer({
         <div
           className={cn(
             "flex min-h-14 items-center gap-2 px-3 py-2 text-lg text-foreground",
-            hasInlineText ? "justify-center" : "bg-pink-100"
+            hasInlineText ? "justify-center" : "bg-answer-cell"
           )}
         >
           {cell.before?.trim() ? (
@@ -375,10 +375,10 @@ export function InteractiveTableCellRenderer({
           <span
             className={cn(
               "inline-flex min-h-9 items-center justify-center rounded-sm border px-3 py-1 text-base",
-              hasInlineText ? "min-w-24" : "min-w-full border-pink-300 bg-pink-100",
+              hasInlineText ? "min-w-24" : "min-w-full border-answer-cell bg-answer-cell",
               value.trim()
-                ? "border-pink-300 bg-white text-foreground"
-                : "border-dashed border-amber-300 bg-amber-50 text-amber-700"
+                ? "border-answer-cell bg-white text-foreground"
+                : "border-dashed border-warning/30 bg-warning/15 text-warning-foreground"
             )}
           >
             {value.trim() || MISSING_LABEL}
@@ -396,7 +396,7 @@ export function InteractiveTableCellRenderer({
           "min-h-9 rounded-sm px-2.5 py-2 text-sm",
           value.trim()
             ? "bg-white text-foreground"
-            : "border border-dashed border-amber-300 bg-amber-50 text-amber-700"
+            : "border border-dashed border-warning/30 bg-warning/15 text-warning-foreground"
         )}
       >
         {value.trim() || MISSING_LABEL}
@@ -421,7 +421,7 @@ export function InteractiveTableCellRenderer({
           "min-h-9 rounded-sm px-2.5 py-2 text-sm",
           value.trim()
             ? "bg-white text-foreground"
-            : "border border-dashed border-amber-300 bg-amber-50 text-amber-700"
+            : "border border-dashed border-warning/30 bg-warning/15 text-warning-foreground"
         )}
       >
         {value.trim() || MISSING_LABEL}
@@ -432,7 +432,7 @@ export function InteractiveTableCellRenderer({
   if (cell.type === "select") {
     return (
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="h-9 w-full rounded-none border-0 bg-white px-2 text-sm shadow-none focus:ring-0">
+        <SelectTrigger className="h-9 w-full rounded-none border-0 bg-white px-2 text-sm shadow-none">
           <SelectValue placeholder={decodeHtml(cell.placeholder) || "Select"} />
         </SelectTrigger>
         <SelectContent>
@@ -465,7 +465,7 @@ export function InteractiveTableCellRenderer({
         }}
         className={cn(
           "min-h-10 p-1.5",
-          !readonly && "bg-pink-50",
+          !readonly && "bg-answer-cell/40",
           hasInlineText && "flex items-center justify-center gap-2 bg-white text-lg text-foreground"
         )}
       >
@@ -474,10 +474,10 @@ export function InteractiveTableCellRenderer({
           className={cn(
             "flex min-h-8 min-w-14 items-center justify-center rounded-sm border px-2.5 py-1.5 text-sm",
             value.trim()
-              ? "border-pink-300 bg-white text-foreground"
+              ? "border-answer-cell bg-white text-foreground"
               : readonly
-                ? "border-dashed border-amber-300 bg-amber-50 text-amber-700"
-                : "border-dashed border-pink-300 bg-pink-100 text-pink-700"
+                ? "border-dashed border-warning/30 bg-warning/15 text-warning-foreground"
+                : "border-dashed border-answer-cell bg-answer-cell text-answer-cell-foreground"
           )}
         >
           {value.trim() || (readonly ? MISSING_LABEL : decodeHtml(cell.placeholder) || "Drop here")}
@@ -510,10 +510,10 @@ export function InteractiveTableCellRenderer({
           className={cn(
             "inline-flex min-h-9 min-w-14 items-center justify-center rounded-sm border px-3 py-1 text-base",
             value.trim()
-              ? "border-pink-300 bg-pink-100 text-foreground"
+              ? "border-answer-cell bg-answer-cell text-foreground"
               : readonly
-                ? "border-dashed border-amber-300 bg-amber-50 text-amber-700"
-                : "border-dashed border-pink-300 bg-pink-100 text-pink-700"
+                ? "border-dashed border-warning/30 bg-warning/15 text-warning-foreground"
+                : "border-dashed border-answer-cell bg-answer-cell text-answer-cell-foreground"
           )}
         >
           {value.trim() || (readonly ? MISSING_LABEL : decodeHtml(cell.placeholder) || "")}
@@ -542,7 +542,7 @@ export function InteractiveTableCellRenderer({
     const leadingLabel = cell.before?.trim() || "Answer";
     return (
       <div className="flex min-h-12 flex-wrap items-center justify-center gap-2 px-2.5 py-2 text-lg text-foreground">
-        <span className="text-sm font-medium text-slate-600">{leadingLabel}</span>
+        <span className="text-sm font-medium text-muted-foreground">{leadingLabel}</span>
         <Input
           type="text"
           inputMode={cell.type === "number_input" ? "decimal" : undefined}
@@ -553,12 +553,12 @@ export function InteractiveTableCellRenderer({
           placeholder={decodeHtml(cell.placeholder)}
           aria-invalid={isInvalidNumber}
           className={cn(
-            "h-9 w-24 rounded-sm border border-pink-300 bg-pink-100 px-2 text-center text-base shadow-none focus-visible:ring-1",
-            isInvalidNumber && "border-red-400 bg-red-50"
+            "h-9 w-24 rounded-sm border border-answer-cell bg-answer-cell px-2 text-center text-base shadow-none focus-visible:ring-1",
+            isInvalidNumber && "border-destructive/40 bg-destructive/10"
           )}
         />
         {isInvalidNumber ? (
-          <div className="basis-full text-center text-[11px] text-red-600">
+          <div className="basis-full text-center text-[11px] text-destructive">
             Enter a number.
           </div>
         ) : null}
@@ -567,7 +567,7 @@ export function InteractiveTableCellRenderer({
   }
 
   return (
-    <div className="flex min-h-14 items-center justify-center bg-pink-100 px-3 py-2">
+    <div className="flex min-h-14 items-center justify-center bg-answer-cell px-3 py-2">
       <Input
         type={cell.type === "number_input" ? "text" : "text"}
         inputMode={cell.type === "number_input" ? "decimal" : undefined}
@@ -579,11 +579,11 @@ export function InteractiveTableCellRenderer({
         aria-invalid={isInvalidNumber}
         className={cn(
           "h-9 w-full rounded-none border-0 bg-transparent px-2 text-center text-base shadow-none focus-visible:ring-1",
-          isInvalidNumber && "border border-red-400 bg-red-50"
+          isInvalidNumber && "border border-destructive/40 bg-destructive/10"
         )}
       />
       {isInvalidNumber ? (
-        <div className="basis-full text-center text-[11px] text-red-600">
+        <div className="basis-full text-center text-[11px] text-destructive">
           Enter a number.
         </div>
       ) : null}
@@ -644,7 +644,7 @@ export function InteractiveTableRenderer({
                 <th
                   key={column.id}
                   scope="col"
-                  className="border-2 border-neutral-700 px-4 py-3 text-center text-lg font-bold text-foreground"
+                  className="border-2 border-foreground/70 px-4 py-3 text-center text-lg font-bold text-foreground"
                 >
                   {decodeHtml(column.label)}
                 </th>
@@ -658,8 +658,8 @@ export function InteractiveTableRenderer({
                   <td
                     key={`${row.id}-${cellIndex}`}
                     className={cn(
-                      "border-2 border-neutral-700 bg-white p-0 align-middle",
-                      isCompactBlankCell(cell) && "bg-pink-100"
+                      "border-2 border-foreground/70 bg-white p-0 align-middle",
+                      isCompactBlankCell(cell) && "bg-answer-cell"
                     )}
                   >
                     <InteractiveTableCellRenderer

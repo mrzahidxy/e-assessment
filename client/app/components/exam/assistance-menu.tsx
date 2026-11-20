@@ -43,7 +43,7 @@ export function AssistanceMenu({
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs gap-1 text-white bg-blue-500 hover:bg-blue-600"
+            className="gap-1 bg-primary text-xs text-primary-foreground hover:bg-primary/90"
           >
             Assistance
             <ChevronDown className="w-3 h-3" />
@@ -60,7 +60,7 @@ export function AssistanceMenu({
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setShowQuitDialog(true)}
-            className="cursor-pointer text-red-600 focus:text-red-600"
+            className="cursor-pointer text-destructive focus:text-destructive"
           >
             <LogOut className="mr-2 h-4 w-4" />
             <span>Quit Exam</span>
@@ -82,7 +82,7 @@ export function AssistanceMenu({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={onQuit}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Quit Exam
             </AlertDialogAction>

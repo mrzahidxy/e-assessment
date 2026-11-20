@@ -528,7 +528,7 @@ export function DrawingAnswerEditor({
   return (
     <div className={className ?? "space-y-2"}>
       {!readonly && (
-        <div className="w-full space-y-2 rounded-md border border-border bg-slate-50 p-2">
+        <div className="w-full space-y-2 rounded-md border border-border bg-muted/30 p-2">
           <div className="flex w-full flex-nowrap items-center gap-2 overflow-x-auto rounded-md border border-border bg-white p-1">
             {TOOL_OPTIONS.map((option) => (
               <Button
@@ -572,14 +572,14 @@ export function DrawingAnswerEditor({
               type="button"
               size="sm"
               variant="outline"
-              className="h-7 w-7 shrink-0 p-0 text-red-600 hover:text-red-700"
+              className="h-7 w-7 shrink-0 p-0 text-destructive hover:text-destructive"
               onClick={clearCanvas}
               title="Clear canvas"
               aria-label="Clear canvas"
             >
               <Trash2 className="h-3 w-3 shrink-0" />
             </Button>
-            <div className="flex h-7 shrink-0 items-center gap-1 rounded border border-border bg-slate-50 px-1.5">
+            <div className="flex h-7 shrink-0 items-center gap-1 rounded border border-border bg-muted/30 px-1.5">
               <input
                 type="color"
                 value={strokeColor}
@@ -589,7 +589,7 @@ export function DrawingAnswerEditor({
                 title="Color picker"
               />
             </div>
-            <div className="flex h-7 shrink-0 items-center gap-1 rounded border border-border bg-slate-50 px-1.5">
+            <div className="flex h-7 shrink-0 items-center gap-1 rounded border border-border bg-muted/30 px-1.5">
               <input
                 type="range"
                 min={MIN_WIDTH}

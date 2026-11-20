@@ -24,13 +24,13 @@ export function StudentHeader({ studentName, schoolCode }: StudentHeaderProps) {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-accent-foreground font-bold">
               S
             </div>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="page-title">
               Student Portal
             </h1>
           </div>

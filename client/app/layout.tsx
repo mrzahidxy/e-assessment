@@ -6,8 +6,8 @@ import { QueryProvider } from "@/components/query-provider"
 import { AuthProvider } from '@/components/auth-provider';
 import { Toaster } from "@/components/ui/toaster"
 
-const _geist = Geist({ subsets: ['latin'] });
-const _geistMono = Geist_Mono({ subsets: ['latin'] });
+const _geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
+const _geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 
 export const metadata: Metadata = {
   title: 'e-Assessment Platform',
@@ -39,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`font-sans antialiased`}>
+      <body className={`${_geist.variable} ${_geistMono.variable} font-sans antialiased`}>
         <QueryProvider>
           <AuthProvider>
             {children}

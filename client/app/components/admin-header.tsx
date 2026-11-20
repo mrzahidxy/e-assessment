@@ -26,13 +26,13 @@ export function AdminHeader({
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
               A
             </div>
-            <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+            <h1 className="page-title">{title}</h1>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">

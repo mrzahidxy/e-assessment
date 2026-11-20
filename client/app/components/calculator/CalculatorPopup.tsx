@@ -87,7 +87,7 @@ export function CalculatorPopup() {
   return (
     <div
       ref={popupRef}
-      className="fixed bg-white rounded-lg shadow-2xl border border-gray-300 z-100"
+      className="fixed bg-card rounded-lg shadow-2xl border border-border z-100"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
@@ -98,7 +98,7 @@ export function CalculatorPopup() {
     >
       {/* Header - Draggable area */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg cursor-grab active:cursor-grabbing"
+        className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30 rounded-t-lg cursor-grab active:cursor-grabbing"
         onMouseDown={handleMouseDown}
       >
         {/* Tabs */}
@@ -106,8 +106,8 @@ export function CalculatorPopup() {
           <button
             className={`pb-1 text-sm font-medium transition-colors ${
               activeTab === "main"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600 hover:text-gray-900"
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => setActiveTab("main")}
           >
@@ -116,8 +116,8 @@ export function CalculatorPopup() {
           <button
             className={`pb-1 text-sm font-medium transition-colors ${
               activeTab === "abc"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600 hover:text-gray-900"
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => setActiveTab("abc")}
           >
@@ -126,8 +126,8 @@ export function CalculatorPopup() {
           <button
             className={`pb-1 text-sm font-medium transition-colors ${
               activeTab === "func"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600 hover:text-gray-900"
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => setActiveTab("func")}
           >
@@ -137,12 +137,12 @@ export function CalculatorPopup() {
 
         {/* DEG/RAD toggle and close button */}
         <div className="flex items-center gap-3" data-no-drag>
-          <div className="flex bg-gray-200 rounded overflow-hidden">
+          <div className="flex bg-muted rounded overflow-hidden">
             <button
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 angleMode === "DEG"
-                  ? "bg-blue-500 text-white"
-                  : "bg-transparent text-gray-700 hover:bg-gray-300"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-transparent text-foreground hover:bg-muted/80"
               }`}
               onClick={toggleAngleMode}
             >
@@ -151,8 +151,8 @@ export function CalculatorPopup() {
             <button
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 angleMode === "RAD"
-                  ? "bg-blue-500 text-white"
-                  : "bg-transparent text-gray-700 hover:bg-gray-300"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-transparent text-foreground hover:bg-muted/80"
               }`}
               onClick={toggleAngleMode}
             >
@@ -161,7 +161,7 @@ export function CalculatorPopup() {
           </div>
           <button
             onClick={closeCalculator}
-            className="h-8 w-8 flex items-center justify-center rounded hover:bg-gray-200 transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:bg-muted transition-colors"
             title="Close calculator"
           >
             <X className="h-4 w-4" />
@@ -173,7 +173,7 @@ export function CalculatorPopup() {
       <ExpressionDisplay />
 
       {/* Tab Content */}
-      <div className="bg-white rounded-b-lg">
+      <div className="bg-card rounded-b-lg">
         {activeTab === "main" && <MainTab />}
         {activeTab === "abc" && <ABCTab />}
         {activeTab === "func" && <FuncTab />}

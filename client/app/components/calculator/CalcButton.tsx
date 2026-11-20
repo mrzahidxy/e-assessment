@@ -28,13 +28,13 @@ export function CalcButton({
   };
 
   const variantClasses = {
-    default: "bg-white hover:bg-gray-50 text-gray-900 border border-gray-200",
+    default: "bg-card hover:bg-muted/40 text-foreground border border-border",
     primary:
-      "bg-blue-500 hover:bg-blue-600 text-white font-semibold border-none",
+      "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold border-none",
     operator:
-      "bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-200",
+      "bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border",
     action:
-      "bg-gray-200 hover:bg-gray-300 text-gray-900 border border-gray-300",
+      "bg-muted hover:bg-muted/80 text-foreground border border-border",
   };
 
   return (
