@@ -20,6 +20,7 @@ const envSchema = z.object({
     ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().default(30),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(7),
     ACCESS_TOKEN_COOKIE_NAME: z.string().default("auth-token"),
+    REFRESH_TOKEN_COOKIE_NAME: z.string().default("refresh-token"),
     COOKIE_DOMAIN: z.string().optional(),
     COOKIE_SECURE: booleanFromEnv(false),
     COOKIE_SAME_SITE: z.enum(["lax", "strict", "none"]).default("lax"),

@@ -1,4 +1,5 @@
 import { UserRole } from '@prisma/client';
+import { createHash, randomBytes } from 'node:crypto';
 
 import { LoginInput, RegisterInput } from '../schemas/auth.schema';
 import { SanitizedUser } from '../types/user';
@@ -6,6 +7,7 @@ import { HttpError } from '../utils/http-error';
 import { prisma } from '../utils/prisma';
 import { comparePassword, hashPassword } from '../utils/password';
 import { createAccessToken } from '../utils/jwt';
+import { env } from '../utils/env';
 
 const sanitizeUser = <T extends { passwordHash?: string; role: UserRole }>(user: T): SanitizedUser => {
   const { passwordHash: _passwordHash, role, ...rest } = user;
@@ -17,7 +19,9 @@ const sanitizeUser = <T extends { passwordHash?: string; role: UserRole }>(user:
   };
 };
 
-const buildAuthResponse = (user: SanitizedUser) => {
+const hashRefreshToken = (token: string) => createHash('sha256').update(token).digest('hex');
+
+const buildAuthResponse = (user: SanitizedUser, refreshToken: string, refreshTokenExpiresAt: Date) => {
   const { token, expiresAt } = createAccessToken({
     userId: user.id,
     roles: user.roles ?? [user.role],
@@ -26,8 +30,19 @@ const buildAuthResponse = (user: SanitizedUser) => {
   return {
     accessToken: token,
     accessTokenExpiresAt: expiresAt,
+    refreshToken,
+    refreshTokenExpiresAt,
     user,
   };
+};
+
+const issueSession = async (user: SanitizedUser) => {
+  const refreshToken = randomBytes(48).toString('base64url');
+  const refreshTokenExpiresAt = new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+  await prisma.refreshSession.create({
+    data: { userId: user.id, tokenHash: hashRefreshToken(refreshToken), expiresAt: refreshTokenExpiresAt },
+  });
+  return buildAuthResponse(user, refreshToken, refreshTokenExpiresAt);
 };
 
 export const authService = {
@@ -54,7 +69,7 @@ export const authService = {
 
     const sanitized = sanitizeUser(user);
 
-    return buildAuthResponse(sanitized);
+    return issueSession(sanitized);
   },
 
   login: async (input: LoginInput) => {
@@ -73,15 +88,51 @@ export const authService = {
 
     const sanitized = sanitizeUser(user);
 
-    return buildAuthResponse(sanitized);
+    return issueSession(sanitized);
   },
 
   refreshSession: async (refreshToken: string | undefined) => {
-    throw new HttpError(501, 'Refresh tokens are currently disabled');
+    if (!refreshToken) throw new HttpError(401, 'Refresh session is missing');
+    const session = await prisma.refreshSession.findUnique({
+      where: { tokenHash: hashRefreshToken(refreshToken) },
+      select: { id: true, userId: true, expiresAt: true, revokedAt: true },
+    });
+    const now = new Date();
+    if (!session || session.revokedAt || session.expiresAt <= now) {
+      throw new HttpError(401, 'Refresh session is invalid or expired');
+    }
+
+    const user = await authService.getProfile(session.userId);
+    const nextRefreshToken = randomBytes(48).toString('base64url');
+    const nextRefreshTokenExpiresAt = new Date(now.getTime() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+    const access = createAccessToken({ userId: user.id, roles: user.roles ?? [user.role] });
+
+    await prisma.$transaction(async (tx) => {
+      const revoked = await tx.refreshSession.updateMany({
+        where: { id: session.id, tokenHash: hashRefreshToken(refreshToken), revokedAt: null, expiresAt: { gt: now } },
+        data: {
+          tokenHash: hashRefreshToken(nextRefreshToken),
+          expiresAt: nextRefreshTokenExpiresAt,
+        },
+      });
+      if (revoked.count !== 1) throw new HttpError(401, 'Refresh session has already been used');
+    });
+
+    return {
+      accessToken: access.token,
+      accessTokenExpiresAt: access.expiresAt,
+      refreshToken: nextRefreshToken,
+      refreshTokenExpiresAt: nextRefreshTokenExpiresAt,
+      user,
+    };
   },
 
   logout: async (refreshToken?: string) => {
-    return;
+    if (!refreshToken) return;
+    await prisma.refreshSession.updateMany({
+      where: { tokenHash: hashRefreshToken(refreshToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   },
 
   getProfile: async (userId: string) => {

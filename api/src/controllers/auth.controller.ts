@@ -2,7 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 
 import { authService } from '../services/auth.service';
 import type { AuthenticatedRequest } from '../types/http';
-import { setAccessTokenCookie, clearAccessTokenCookie } from '../utils/auth-cookies';
+import { env } from '../utils/env';
+import {
+  setAccessTokenCookie,
+  clearAccessTokenCookie,
+  setRefreshTokenCookie,
+  clearRefreshTokenCookie,
+} from '../utils/auth-cookies';
 
 export const authController = {
   register: async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -11,6 +17,7 @@ export const authController = {
       
       // Set access token as httpOnly cookie
       setAccessTokenCookie(res, result.accessToken, result.accessTokenExpiresAt);
+      setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
       
       // Return user data (without token in body)
       res.status(201).json({
@@ -27,6 +34,7 @@ export const authController = {
       
       // Set access token as httpOnly cookie
       setAccessTokenCookie(res, result.accessToken, result.accessTokenExpiresAt);
+      setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
       
       // Return user data (without token in body)
       res.status(200).json({
@@ -37,9 +45,15 @@ export const authController = {
     }
   },
 
-  logout: async (_req: Request, res: Response) => {
-    // Clear the access token cookie
+  logout: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await authService.logout(req.cookies?.[env.REFRESH_TOKEN_COOKIE_NAME]);
+    } catch (error) {
+      next(error);
+      return;
+    }
     clearAccessTokenCookie(res);
+    clearRefreshTokenCookie(res);
     res.status(204).send();
   },
 
@@ -51,6 +65,17 @@ export const authController = {
 
       const user = await authService.getProfile(req.user.id);
       res.status(200).json(user);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  refresh: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await authService.refreshSession(req.cookies?.[env.REFRESH_TOKEN_COOKIE_NAME]);
+      setAccessTokenCookie(res, result.accessToken, result.accessTokenExpiresAt);
+      setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
+      res.status(200).json({ user: result.user });
     } catch (error) {
       next(error);
     }

@@ -20,22 +20,45 @@ const backendAxios = axios.create({
   },
 });
 
-// Add response interceptor to handle 401 errors
+let refreshInFlight: Promise<void> | null = null;
+
+const refreshSession = () => {
+  if (refreshInFlight) return refreshInFlight;
+
+  const refresh = () => axios
+    .post(`${getBackendApiUrl()}/auth/refresh`, {}, { withCredentials: true })
+    .then(() => undefined);
+
+  refreshInFlight = typeof navigator !== "undefined" && navigator.locks
+    ? navigator.locks.request("e-assessment-auth-refresh", refresh)
+    : refresh();
+  refreshInFlight = refreshInFlight.finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+};
+
+// Refresh the cookie once after an access token expires, then replay the request.
 backendAxios.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid - clear auth and redirect to login
-      if (typeof window !== "undefined") {
-        // Clear localStorage to sync with expired cookie
-        localStorage.removeItem("auth-storage");
+      const request = error.config as (typeof error.config & { _authRetried?: boolean }) | undefined;
+      if (request && !request._authRetried && !request.url?.includes("/auth/refresh")) {
+        request._authRetried = true;
+        try {
+          await refreshSession();
+          return backendAxios.request(request);
+        } catch {
+          // The refresh token is missing, expired, or revoked. Clear local auth below.
+        }
+      }
 
-        // Import dynamically to avoid circular dependency
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth-storage");
         import("./auth-store").then(({ useAuthStore }) => {
           const store = useAuthStore.getState();
           store.setUser(null);
-
-          // Only redirect if not already on auth pages
           if (!window.location.pathname.startsWith("/auth/")) {
             window.location.href = "/auth/login";
           }

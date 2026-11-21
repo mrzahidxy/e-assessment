@@ -27,3 +27,20 @@ export const clearAccessTokenCookie = (res: Response) => {
   });
 };
 
+export const setRefreshTokenCookie = (res: Response, token: string, expiresAt: Date) => {
+  res.cookie(env.REFRESH_TOKEN_COOKIE_NAME, token, {
+    ...baseCookieOptions,
+    path: '/api',
+    expires: expiresAt,
+    maxAge: Math.max(0, expiresAt.getTime() - Date.now()),
+  });
+};
+
+export const clearRefreshTokenCookie = (res: Response) => {
+  res.clearCookie(env.REFRESH_TOKEN_COOKIE_NAME, {
+    ...baseCookieOptions,
+    path: '/api',
+    expires: new Date(0),
+  });
+};
+
