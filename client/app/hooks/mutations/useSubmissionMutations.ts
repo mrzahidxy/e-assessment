@@ -5,7 +5,7 @@ import { backendApiFetch } from "@/lib/api-client";
 import type { Submission } from "@/types";
 
 interface CreateSubmissionPayload {
-  paperId: string;
+  submissionId: string;
   answers: {
     subQuestionId: string;
     answerText: string;
@@ -18,11 +18,10 @@ export function useSubmissionMutations() {
   const create = useMutation({
     mutationFn: async (payload: CreateSubmissionPayload) => {
       try {
-        const res = await backendApiFetch<Submission>("/submissions", {
+        const res = await backendApiFetch<Submission>(`/submissions/${payload.submissionId}/submit`, {
           method: "POST",
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ answers: payload.answers }),
         });
-        console.log("Submission API response:", res);
         if (!res.success) {
           throw new Error(res.error || "Submission failed");
         }

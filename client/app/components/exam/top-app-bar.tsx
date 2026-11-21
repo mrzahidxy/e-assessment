@@ -16,6 +16,7 @@ interface TopAppBarProps {
   canSubmitEarly: boolean;
   earlySubmitDisabledMessage?: string;
   isInBufferPeriod?: boolean;
+  draftSaveState?: "saved" | "saving" | "error";
 }
 
 export const TopAppBar = memo(function TopAppBar({
@@ -27,6 +28,7 @@ export const TopAppBar = memo(function TopAppBar({
   canSubmitEarly,
   earlySubmitDisabledMessage,
   isInBufferPeriod = false,
+  draftSaveState = "saved",
 }: TopAppBarProps) {
   const { toggleCalculator } = useCalculator();
 
@@ -92,6 +94,13 @@ export const TopAppBar = memo(function TopAppBar({
               earlySubmitDisabledMessage={earlySubmitDisabledMessage}
             />
           </div>
+          <span
+            role="status"
+            aria-live="polite"
+            className={`hidden text-xs sm:inline ${draftSaveState === "error" ? "text-destructive" : "text-muted-foreground"}`}
+          >
+            {draftSaveState === "saving" ? "Saving…" : draftSaveState === "error" ? "Save failed" : "Saved"}
+          </span>
           <div className="flex h-full min-w-16 items-center justify-center gap-1 bg-primary px-2 text-primary-foreground sm:w-48 sm:gap-2 sm:px-3 sm:py-1.5">
             <Clock className="h-4 w-4 shrink-0 sm:h-8 sm:w-8" />
             <span className="whitespace-nowrap text-sm font-bold sm:text-xl">

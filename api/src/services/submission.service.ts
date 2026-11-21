@@ -11,6 +11,7 @@ import {
   CreateSubmissionInput,
   GradeSubmissionInput,
   ListSubmissionsQuery,
+  SaveDraftInput,
 } from '../schemas/submission.schema';
 import { AuthenticatedUser } from '../types/user';
 import { prisma } from '../utils/prisma';
@@ -178,7 +179,7 @@ type SubmissionAnswer = {
 type SubmissionDetailResponse = {
   id: string;
   status: SubmissionStatus;
-  submittedAt: Date;
+  submittedAt: Date | null;
   student: {
     id: string;
     name: string;
@@ -221,28 +222,67 @@ const ensureStudentAccess = async (studentId: string, paperId: string) => {
   }
 };
 
-const validatePaperWindow = (paper: { startDate: Date; endDate: Date; earlySubmissionRestrictionMinutes: number | null }) => {
-  const now = new Date();
-  if (paper.startDate.getTime() > now.getTime()) {
-    throw new HttpError(400, 'Exam has not started yet');
-  }
+const isUniqueConstraintError = (error: unknown): error is { code: string } =>
+  typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
 
-  if (paper.endDate.getTime() < now.getTime()) {
-    throw new HttpError(400, 'Exam has already ended');
-  }
+const getAttemptDeadline = (startedAt: Date, durationMinutes: number, paperEndDate: Date) =>
+  new Date(Math.min(startedAt.getTime() + durationMinutes * 60_000, paperEndDate.getTime()));
 
-  if (paper.earlySubmissionRestrictionMinutes) {
-    const earliestSubmission = new Date(
-      paper.startDate.getTime() + paper.earlySubmissionRestrictionMinutes * 60 * 1000
-    );
-    if (now.getTime() < earliestSubmission.getTime()) {
-      throw new HttpError(400, 'You cannot submit this early');
+const validateAttemptAnswers = async (paperId: string, answers: SaveDraftInput['answers']) => {
+  const subQuestions = await prisma.subQuestion.findMany({
+    where: { questionRel: { paperId } },
+    select: { id: true, questionType: true, template: true },
+  });
+  const subQuestionById = new Map(subQuestions.map((sub) => [sub.id, sub]));
+  const seen = new Set<string>();
+
+  for (const answer of answers) {
+    if (seen.has(answer.subQuestionId)) {
+      throw new HttpError(400, 'Duplicate sub-question answers are not allowed');
+    }
+    seen.add(answer.subQuestionId);
+    const subQuestion = subQuestionById.get(answer.subQuestionId);
+    if (!subQuestion) throw new HttpError(400, 'One or more answers reference invalid sub-questions');
+    if (!answer.answerText) continue;
+    if (subQuestion.questionType === QuestionType.INTERACTIVE_TABLE) {
+      validateInteractiveTableAnswer(answer.answerText, subQuestion.template);
+    }
+    if (subQuestion.questionType === QuestionType.DRAWING) {
+      validateDrawingAnswer(answer.answerText);
     }
   }
 };
 
-const isUniqueConstraintError = (error: unknown): error is { code: string } =>
-  typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
+const getAttemptPayload = async (submissionId: string) => {
+  const submission = await prisma.submission.findUniqueOrThrow({
+    where: { id: submissionId },
+    select: {
+      id: true,
+      status: true,
+      startedAt: true,
+      submittedAt: true,
+      answers: { select: { subQuestionId: true, answerText: true } },
+      paper: { select: { durationMinutes: true, endDate: true } },
+    },
+  });
+  return {
+    id: submission.id,
+    status: submission.status,
+    startedAt: submission.startedAt,
+    submittedAt: submission.submittedAt,
+    deadlineAt: getAttemptDeadline(submission.startedAt, submission.paper.durationMinutes, submission.paper.endDate),
+    answers: submission.answers,
+  };
+};
+
+type AttemptPayload = {
+  id: string;
+  status: SubmissionStatus;
+  startedAt: Date;
+  submittedAt: Date | null;
+  deadlineAt: Date;
+  answers: { subQuestionId: string; answerText: string }[];
+};
 
 const filterForActor = (
   actor: AuthenticatedUser,
@@ -262,12 +302,164 @@ const filterForActor = (
 
   if (query?.status) {
     where.status = query.status;
+  } else if (actor.role === UserRole.ADMIN) {
+    where.status = { in: [SubmissionStatus.SUBMITTED, SubmissionStatus.REVIEWED] };
   }
 
   return where;
 };
 
 export const submissionService = {
+  startAttempt: async (actor: AuthenticatedUser, paperId: string): Promise<AttemptPayload> => {
+    if (actor.role !== UserRole.STUDENT) throw new HttpError(403, 'Only students can start an exam');
+    const paper = await prisma.questionPaper.findUnique({
+      where: { id: paperId },
+      select: { id: true, status: true, startDate: true, endDate: true, durationMinutes: true },
+    });
+    if (!paper || paper.status !== PaperStatus.PUBLISHED) {
+      throw new HttpError(400, 'Paper is not available for submissions');
+    }
+    await ensureStudentAccess(actor.id, paper.id);
+
+    const existing = await prisma.submission.findUnique({
+      where: { studentId_paperId: { studentId: actor.id, paperId } },
+      select: { id: true, status: true, startedAt: true },
+    });
+    if (existing) {
+      if (existing.status !== SubmissionStatus.IN_PROGRESS) {
+        throw new HttpError(409, 'You have already submitted answers for this paper');
+      }
+      const deadlineAt = getAttemptDeadline(existing.startedAt, paper.durationMinutes, paper.endDate);
+      if (Date.now() >= deadlineAt.getTime()) {
+        await prisma.submission.updateMany({
+          where: { id: existing.id, status: SubmissionStatus.IN_PROGRESS },
+          data: { status: SubmissionStatus.SUBMITTED, submittedAt: deadlineAt },
+        });
+      }
+      return getAttemptPayload(existing.id);
+    }
+
+    const now = new Date();
+    if (paper.startDate.getTime() > now.getTime()) throw new HttpError(400, 'Exam has not started yet');
+    if (paper.endDate.getTime() <= now.getTime()) throw new HttpError(400, 'Exam has already ended');
+
+    try {
+      const created = await prisma.submission.create({
+        data: {
+          studentId: actor.id,
+          paperId,
+          status: SubmissionStatus.IN_PROGRESS,
+          startedAt: now,
+        },
+        select: { id: true },
+      });
+      return getAttemptPayload(created.id);
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        return submissionService.startAttempt(actor, paperId);
+      }
+      throw error;
+    }
+  },
+
+  saveDraft: async (actor: AuthenticatedUser, submissionId: string, input: SaveDraftInput) => {
+    if (actor.role !== UserRole.STUDENT) throw new HttpError(403, 'Only students can save exam answers');
+    const submission = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: {
+        id: true, paperId: true, studentId: true, status: true, startedAt: true,
+        paper: { select: { durationMinutes: true, endDate: true } },
+      },
+    });
+    if (!submission) throw new HttpError(404, 'Exam attempt not found');
+    if (submission.studentId !== actor.id) throw new HttpError(403, 'You do not have access to this exam attempt');
+    if (submission.status !== SubmissionStatus.IN_PROGRESS) throw new HttpError(409, 'This exam attempt is already submitted');
+
+    const deadlineAt = getAttemptDeadline(submission.startedAt, submission.paper.durationMinutes, submission.paper.endDate);
+    if (Date.now() >= deadlineAt.getTime()) {
+      await prisma.submission.updateMany({
+        where: { id: submission.id, studentId: actor.id, status: SubmissionStatus.IN_PROGRESS },
+        data: { status: SubmissionStatus.SUBMITTED, submittedAt: deadlineAt },
+      });
+      return getAttemptPayload(submission.id);
+    }
+
+    await validateAttemptAnswers(submission.paperId, input.answers);
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.$executeRaw`
+        UPDATE "Submission" AS submission
+        SET "updatedAt" = CURRENT_TIMESTAMP
+        FROM "QuestionPaper" AS paper
+        WHERE submission."id" = ${submission.id}::uuid
+          AND submission."studentId" = ${actor.id}::uuid
+          AND submission."status" = 'IN_PROGRESS'::"SubmissionStatus"
+          AND paper."id" = submission."paperId"
+          AND CURRENT_TIMESTAMP < LEAST(
+            submission."startedAt" + paper."durationMinutes" * INTERVAL '1 minute',
+            paper."endDate"
+          )
+      `;
+      if (updated !== 1) throw new HttpError(409, 'This exam attempt is no longer accepting answers');
+      await tx.answer.deleteMany({ where: { submissionId } });
+      const answers = input.answers.filter((answer) => answer.answerText.length > 0);
+      if (answers.length) {
+        await tx.answer.createMany({
+          data: answers.map((answer) => ({ submissionId, ...answer })),
+        });
+      }
+    }, { timeout: 30_000 });
+    return getAttemptPayload(submissionId);
+  },
+
+  submitAttempt: async (actor: AuthenticatedUser, submissionId: string, input: SaveDraftInput) => {
+    if (actor.role !== UserRole.STUDENT) throw new HttpError(403, 'Only students can submit answers');
+    const submission = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: {
+        id: true, studentId: true, paperId: true, status: true, startedAt: true,
+        paper: { select: { durationMinutes: true, startDate: true, endDate: true, earlySubmissionRestrictionMinutes: true } },
+      },
+    });
+    if (!submission) throw new HttpError(404, 'Exam attempt not found');
+    if (submission.studentId !== actor.id) throw new HttpError(403, 'You do not have access to this exam attempt');
+    if (submission.status !== SubmissionStatus.IN_PROGRESS) {
+      return prisma.submission.findUniqueOrThrow({ where: { id: submissionId }, include: submissionInclude });
+    }
+
+    const deadlineAt = getAttemptDeadline(submission.startedAt, submission.paper.durationMinutes, submission.paper.endDate);
+    const now = new Date();
+    if (now.getTime() >= deadlineAt.getTime()) {
+      await prisma.submission.updateMany({
+        where: { id: submission.id, studentId: actor.id, status: SubmissionStatus.IN_PROGRESS },
+        data: { status: SubmissionStatus.SUBMITTED, submittedAt: deadlineAt },
+      });
+      return prisma.submission.findUniqueOrThrow({ where: { id: submissionId }, include: submissionInclude });
+    }
+
+    const earliestSubmission = new Date(
+      submission.paper.startDate.getTime() + (submission.paper.earlySubmissionRestrictionMinutes ?? 0) * 60_000
+    );
+    if (now.getTime() < earliestSubmission.getTime()) throw new HttpError(400, 'You cannot submit this early');
+    await validateAttemptAnswers(submission.paperId, input.answers);
+
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.submission.updateMany({
+        where: { id: submission.id, studentId: actor.id, status: SubmissionStatus.IN_PROGRESS },
+        data: { status: SubmissionStatus.SUBMITTED, submittedAt: now },
+      });
+      if (updated.count !== 1) throw new HttpError(409, 'This exam attempt has already been submitted');
+      await tx.answer.deleteMany({ where: { submissionId } });
+      const answers = input.answers.filter((answer) => answer.answerText.length > 0);
+      if (answers.length) {
+        await tx.answer.createMany({
+          data: answers.map((answer) => ({ submissionId, ...answer })),
+        });
+      }
+    }, { timeout: 30_000 });
+
+    return prisma.submission.findUniqueOrThrow({ where: { id: submissionId }, include: submissionInclude });
+  },
+
   list: async (
     actor: AuthenticatedUser,
     query?: ListSubmissionsQuery
@@ -313,6 +505,9 @@ export const submissionService = {
 
     if (actor.role !== UserRole.ADMIN && submission.studentId !== actor.id) {
       throw new HttpError(403, 'You do not have access to this submission');
+    }
+    if (actor.role === UserRole.ADMIN && submission.status === SubmissionStatus.IN_PROGRESS) {
+      throw new HttpError(409, 'This exam attempt has not been submitted yet');
     }
 
     const answersBySubQuestionId = new Map<
@@ -383,100 +578,13 @@ export const submissionService = {
     actor: AuthenticatedUser,
     input: CreateSubmissionInput
   ): Promise<SubmissionResponse> => {
-    if (actor.role !== UserRole.STUDENT) {
-      throw new HttpError(403, 'Only students can submit answers');
-    }
-
-    const paper = await prisma.questionPaper.findUnique({
-      where: { id: input.paperId },
-      select: {
-        id: true,
-        status: true,
-        startDate: true,
-        endDate: true,
-        earlySubmissionRestrictionMinutes: true,
-      },
+    if (actor.role !== UserRole.STUDENT) throw new HttpError(403, 'Only students can submit answers');
+    const attempt = await prisma.submission.findUnique({
+      where: { studentId_paperId: { studentId: actor.id, paperId: input.paperId } },
+      select: { id: true },
     });
-
-    if (!paper || paper.status !== PaperStatus.PUBLISHED) {
-      throw new HttpError(400, 'Paper is not available for submissions');
-    }
-
-    await ensureStudentAccess(actor.id, paper.id);
-    validatePaperWindow(paper);
-
-    const existingSubmission = await prisma.submission.findUnique({
-      where: {
-        studentId_paperId: {
-          studentId: actor.id,
-          paperId: paper.id,
-        },
-      },
-    });
-
-    if (existingSubmission) {
-      throw new HttpError(409, 'You have already submitted answers for this paper');
-    }
-
-    const subQuestions = await prisma.subQuestion.findMany({
-      where: { questionRel: { paperId: paper.id } },
-      select: { id: true, questionType: true, template: true },
-    });
-    const subQuestionById = new Map(subQuestions.map((sub) => [sub.id, sub]));
-
-    const seenSubQuestions = new Set<string>();
-    for (const answer of input.answers) {
-      if (seenSubQuestions.has(answer.subQuestionId)) {
-        throw new HttpError(400, 'Duplicate sub-question answers are not allowed');
-      }
-      seenSubQuestions.add(answer.subQuestionId);
-
-      const subQuestion = subQuestionById.get(answer.subQuestionId);
-      if (!subQuestion) {
-        throw new HttpError(400, 'One or more answers reference invalid sub-questions');
-      }
-
-      if (subQuestion.questionType === QuestionType.INTERACTIVE_TABLE) {
-        validateInteractiveTableAnswer(answer.answerText, subQuestion.template);
-      }
-      if (subQuestion.questionType === QuestionType.DRAWING) {
-        validateDrawingAnswer(answer.answerText);
-      }
-    }
-
-    let submission: { id: string };
-    try {
-      submission = await prisma.$transaction(async (tx) => {
-        const created = await tx.submission.create({
-          data: {
-            studentId: actor.id,
-            paperId: paper.id,
-          },
-        });
-
-        await tx.answer.createMany({
-          data: input.answers.map((answer) => ({
-            submissionId: created.id,
-            subQuestionId: answer.subQuestionId,
-            answerText: answer.answerText,
-          })),
-        });
-
-        return created;
-      });
-    } catch (error) {
-      // The unique student/paper constraint is the final guard when two requests
-      // pass the preflight lookup at the same time.
-      if (isUniqueConstraintError(error)) {
-        throw new HttpError(409, 'You have already submitted answers for this paper');
-      }
-      throw error;
-    }
-
-    return prisma.submission.findUniqueOrThrow({
-      where: { id: submission.id },
-      include: submissionInclude,
-    });
+    if (!attempt) throw new HttpError(409, 'Start the exam before submitting answers');
+    return submissionService.submitAttempt(actor, attempt.id, input);
   },
 
   grade: async (
@@ -493,11 +601,15 @@ export const submissionService = {
       select: {
         id: true,
         paperId: true,
+        status: true,
       },
     });
 
     if (!submission) {
       throw new HttpError(404, 'Submission not found');
+    }
+    if (submission.status === SubmissionStatus.IN_PROGRESS) {
+      throw new HttpError(409, 'This exam attempt has not been submitted yet');
     }
 
     const subQuestions = await prisma.subQuestion.findMany({

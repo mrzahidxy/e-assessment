@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 const answerInputSchema = z.object({
   subQuestionId: z.string().uuid(),
-  answerText: z.string().min(1),
+  answerText: z.string().max(1_000_000),
 });
 
 const gradeInputSchema = z.object({
@@ -21,6 +21,16 @@ export const createSubmissionSchema = z.object({
   answers: z.array(answerInputSchema),
 });
 
+export const startAttemptSchema = z.object({
+  paperId: z.string().uuid(),
+});
+
+export const saveDraftSchema = z.object({
+  answers: z.array(answerInputSchema),
+});
+
+export const submitAttemptSchema = saveDraftSchema;
+
 export const listSubmissionsQuerySchema = z.object({
   paperId: z.string().uuid().optional(),
   studentId: z.string().uuid().optional(),
@@ -34,5 +44,7 @@ export const gradeSubmissionSchema = z.object({
 });
 
 export type CreateSubmissionInput = z.infer<typeof createSubmissionSchema>;
+export type SaveDraftInput = z.infer<typeof saveDraftSchema>;
+export type StartAttemptInput = z.infer<typeof startAttemptSchema>;
 export type ListSubmissionsQuery = z.infer<typeof listSubmissionsQuerySchema>;
 export type GradeSubmissionInput = z.infer<typeof gradeSubmissionSchema>;

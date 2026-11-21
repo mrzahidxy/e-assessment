@@ -100,7 +100,8 @@ model Submission {
   studentId   String           @db.Uuid
   paperId     String           @db.Uuid
   status      SubmissionStatus @default(SUBMITTED)
-  submittedAt DateTime         @default(now())
+  startedAt   DateTime         @default(now())
+  submittedAt DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   answers     Answer[]
@@ -178,6 +179,7 @@ enum AccessStatus {
 enum SubmissionStatus {
   SUBMITTED
   REVIEWED
+  IN_PROGRESS
 }
 
 enum QuestionType {

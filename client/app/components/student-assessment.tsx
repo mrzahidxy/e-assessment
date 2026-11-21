@@ -5,6 +5,7 @@ import { KeyRound, Lock, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { StatePanel } from "@/components/ui/state-panel";
 import { useSubmissionMutations } from "@/hooks/mutations/useSubmissionMutations";
 import { usePaper } from "@/hooks/queries/usePaper";
 import { useAuthStore } from "@/lib/auth-store";
@@ -19,6 +20,16 @@ import { CalculatorPopup } from "./calculator/CalculatorPopup";
 type StudentAssessmentProps = {
   assessmentId: string;
 };
+
+type ExamAttempt = {
+  id: string;
+  status: "IN_PROGRESS" | "SUBMITTED" | "REVIEWED";
+  startedAt: string;
+  deadlineAt: string;
+  answers: { subQuestionId: string; answerText: string }[];
+};
+
+type DraftSaveState = "saved" | "saving" | "error";
 
 type SecurityViolationType =
   | "COPY_SHORTCUT"
@@ -94,11 +105,16 @@ export default function StudentAssessment({
   assessmentId,
 }: StudentAssessmentProps) {
   // All hooks must be called at the top level before any conditional returns
-  const { data: paper, isLoading, isError, error } = usePaper(assessmentId);
+  const { data: paper, isLoading, isError, error, refetch } = usePaper(assessmentId);
   const { user } = useAuthStore();
 
   // Normalized state: answers keyed by subQuestionId (stable UUID)
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const answersRef = useRef<Record<string, string>>({});
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [attemptDeadlineAt, setAttemptDeadlineAt] = useState<number | null>(null);
+  const [draftSaveState, setDraftSaveState] = useState<DraftSaveState>("saved");
+  const [isStarting, setIsStarting] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [penaltySeconds, setPenaltySeconds] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -121,6 +137,8 @@ export default function StudentAssessment({
   const isExamLockedRef = useRef(false);
   const lastPenaltyAtRef = useRef<number>(0);
   const progressivePenaltyCountRef = useRef(0);
+  const focusLossTimerRef = useRef<number | null>(null);
+  const draftQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const lockExam = useCallback(
     (violationType: SecurityViolationType, details?: string) => {
@@ -254,9 +272,10 @@ export default function StudentAssessment({
     startsAt + (paper?.earlySubmissionRestrictionMinutes ?? 0) * 60 * 1000;
   const isWithinExamWindow =
     !!paper && currentTime >= startsAt && currentTime <= endsAt;
-  const canStartExam = isWithinExamWindow;
+  const canStartExam = !!paper && currentTime >= startsAt;
+  const effectiveDeadlineAt = attemptDeadlineAt ?? endsAt;
   const timeRemaining = paper
-    ? Math.max(0, Math.ceil((endsAt - currentTime) / 1000) - penaltySeconds)
+    ? Math.max(0, Math.ceil((effectiveDeadlineAt - currentTime) / 1000) - penaltySeconds)
     : 0;
 
   // Keep submission controls on the same schedule enforced by the API.
@@ -471,28 +490,51 @@ export default function StudentAssessment({
     };
   }, [hasStartedExam, submitted, lockExam]);
 
-  // Security: Detect focus loss and window switching
+  // Security: Detect focus loss and window switching without treating brief
+  // browser/editor focus transitions as a window switch.
   useEffect(() => {
     if (!hasStartedExam) return;
 
     const handleBlur = () => {
-      if (!submitted) {
-        lockExam("WINDOW_SWITCH", "Window lost focus");
+      if (submitted || focusLossTimerRef.current !== null) return;
+
+      focusLossTimerRef.current = window.setTimeout(() => {
+        focusLossTimerRef.current = null;
+        if (
+          !submitted &&
+          document.visibilityState === "visible" &&
+          !document.hasFocus()
+        ) {
+          lockExam("WINDOW_SWITCH", "Window lost focus");
+        }
+      }, 500);
+    };
+
+    const clearPendingFocusLoss = () => {
+      if (focusLossTimerRef.current !== null) {
+        window.clearTimeout(focusLossTimerRef.current);
+        focusLossTimerRef.current = null;
       }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden" && !submitted) {
+        clearPendingFocusLoss();
         lockExam("WINDOW_SWITCH", "Tab or window hidden");
+      } else if (document.hasFocus()) {
+        clearPendingFocusLoss();
       }
     };
 
     window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", clearPendingFocusLoss);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", clearPendingFocusLoss);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearPendingFocusLoss();
     };
   }, [hasStartedExam, submitted, lockExam]);
 
@@ -522,19 +564,73 @@ export default function StudentAssessment({
     };
   }, [hasStartedExam, submitted]);
 
+  const queueDraftSave = useCallback((snapshot: Record<string, string>) => {
+    if (!attemptId) return Promise.resolve();
+    const save = draftQueueRef.current.catch(() => undefined).then(async () => {
+      const answersToSave = Object.entries(snapshot).map(([subQuestionId, answerText]) => ({
+        subQuestionId,
+        answerText,
+      }));
+      const result = await backendApiFetch<ExamAttempt>(`/submissions/${attemptId}/draft`, {
+        method: "PUT",
+        body: JSON.stringify({ answers: answersToSave }),
+      });
+      if (!result.success) throw new Error(result.error || "Draft save failed");
+      if (!result.data) throw new Error("Draft save failed");
+      if (result.data.status !== "IN_PROGRESS") {
+        setSubmitted(true);
+        setDraftSaveState("saved");
+        return;
+      }
+      setDraftSaveState("saved");
+    });
+    draftQueueRef.current = save;
+    return save;
+  }, [attemptId]);
+
+  useEffect(() => {
+    if (!hasStartedExam || !attemptId || submitted) return;
+    const save = () => {
+      setDraftSaveState("saving");
+      void queueDraftSave(answersRef.current).catch((error) => {
+        console.warn("Could not save exam draft:", error);
+        setDraftSaveState("error");
+      });
+    };
+    const debounce = window.setTimeout(save, 600);
+    return () => window.clearTimeout(debounce);
+  }, [answers, attemptId, hasStartedExam, queueDraftSave, submitted]);
+
+  useEffect(() => {
+    if (!hasStartedExam || !attemptId || submitted) return;
+    const retryInterval = window.setInterval(() => {
+      setDraftSaveState("saving");
+      void queueDraftSave(answersRef.current).catch((error) => {
+        console.warn("Could not save exam draft:", error);
+        setDraftSaveState("error");
+      });
+    }, 5_000);
+    return () => window.clearInterval(retryInterval);
+  }, [attemptId, hasStartedExam, queueDraftSave, submitted]);
+
   // Update answer by subQuestionId (stable key)
   const handleAnswerChange = useCallback(
     (subQuestionId: string, value: string) => {
-      setAnswers((prev) => ({
-        ...prev,
-        [subQuestionId]: value,
-      }));
+      const next = { ...answersRef.current, [subQuestionId]: value };
+      answersRef.current = next;
+      setAnswers(next);
     },
     []
   );
 
-  const handleQuit = () => {
-    // Navigate back to student dashboard without submitting
+  const handleQuit = async () => {
+    try {
+      await queueDraftSave(answersRef.current);
+    } catch {
+      setDraftSaveState("error");
+      setSubmissionError("Your latest answers could not be saved. Please check your connection and try again before leaving.");
+      return;
+    }
     window.location.href = "/student/assessments";
   };
 
@@ -562,7 +658,7 @@ export default function StudentAssessment({
     [subQuestionById]
   );
 
-  const submitAssessment = useCallback((isDeadlineSubmission: boolean) => {
+  const submitAssessment = useCallback(async (isDeadlineSubmission: boolean) => {
     if (submissionInFlightRef.current || submitted || !hasStartedExam) return;
     if (!canSubmitEarly && !isDeadlineSubmission) {
       setSubmissionError(earlySubmitDisabledMessage ?? "Submission is not available yet.");
@@ -573,41 +669,24 @@ export default function StudentAssessment({
     setIsSubmitting(true);
     setSubmissionError(null);
 
-    // Convert answers object to array format expected by backend
-    // Filter out empty answers (strip HTML and check for content)
-    const submissionAnswers = Object.entries(answers)
-      .filter(([subQuestionId, answer]) => isAnswerFilled(subQuestionId, answer))
-      .map(([subQuestionId, answerText]) => ({
-        subQuestionId,
-        answerText,
-      }));
-
-    create.mutate(
-      {
-        paperId: assessmentId,
-        answers: submissionAnswers,
-      },
-      {
-        onSuccess: (data) => {
-          console.log("Submission successful:", data);
-          setIsSubmitting(false);
-          setSubmitted(true);
-        },
-        onError: (error: any) => {
-          console.error("Submission error:", error);
-          setIsSubmitting(false);
-          submissionInFlightRef.current = false;
-          const errorMessage =
-            error?.message ||
-            (typeof error === "string" ? error : "") ||
-            "Failed to submit assessment. Please try again.";
-          setSubmissionError(errorMessage);
-        },
-      }
-    );
+    try {
+      if (!attemptId) throw new Error("The exam attempt is not ready. Please try again.");
+      await draftQueueRef.current.catch(() => undefined);
+      const currentAnswers = answersRef.current;
+      const submissionAnswers = Object.entries(currentAnswers)
+        .filter(([subQuestionId, answer]) => isAnswerFilled(subQuestionId, answer))
+        .map(([subQuestionId, answerText]) => ({ subQuestionId, answerText }));
+      await create.mutateAsync({ submissionId: attemptId, answers: submissionAnswers });
+      setIsSubmitting(false);
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Submission error:", error);
+      setIsSubmitting(false);
+      submissionInFlightRef.current = false;
+      setSubmissionError(error instanceof Error ? error.message : "Failed to submit assessment. Please try again.");
+    }
   }, [
-    answers,
-    assessmentId,
+    attemptId,
     canSubmitEarly,
     create,
     earlySubmitDisabledMessage,
@@ -624,11 +703,11 @@ export default function StudentAssessment({
     if (
       hasStartedExam &&
       !submitted &&
-      (timeRemaining <= 10 || currentTime > endsAt)
+      timeRemaining <= 0
     ) {
       submitAssessment(true);
     }
-  }, [currentTime, endsAt, hasStartedExam, submitted, submitAssessment, timeRemaining]);
+  }, [currentTime, hasStartedExam, submitted, submitAssessment, timeRemaining]);
 
   // Track answered status separately to avoid recomputing navigation on every keystroke
   const [answeredStatus, setAnsweredStatus] = useState<Record<string, boolean>>(
@@ -725,22 +804,40 @@ export default function StudentAssessment({
 
   // Handler to start exam and enter fullscreen
   const handleStartExam = async () => {
-    if (!canStartExam) return;
-    // Check if DevTools are open before starting
+    if (!canStartExam || isStarting) return;
     if (isDevToolsOpen) {
-      alert(
-        "Please close Developer Tools before starting the exam. Press F12 or close the DevTools panel to continue."
-      );
+      alert("Please close Developer Tools before starting the exam.");
       return;
     }
 
+    setIsStarting(true);
+    setSubmissionError(null);
     try {
       await enterFullscreen();
-      setHasStartedExam(true);
     } catch (err) {
       console.error("Error entering fullscreen:", err);
-      // Still allow starting exam even if fullscreen fails
+    }
+    try {
+      const result = await backendApiFetch<ExamAttempt>("/submissions/start", {
+        method: "POST",
+        body: JSON.stringify({ paperId: assessmentId }),
+      });
+      if (!result.success) throw new Error(result.error || "Could not start the exam.");
+      if (!result.data) throw new Error("Could not start the exam.");
+      const attempt = result.data;
+      setAttemptId(attempt.id);
+      setAttemptDeadlineAt(new Date(attempt.deadlineAt).getTime());
+      const restoredAnswers = Object.fromEntries(
+        attempt.answers.map((answer) => [answer.subQuestionId, answer.answerText])
+      );
+      answersRef.current = restoredAnswers;
+      setAnswers(restoredAnswers);
       setHasStartedExam(true);
+      if (attempt.status !== "IN_PROGRESS") setSubmitted(true);
+    } catch (error) {
+      setSubmissionError(error instanceof Error ? error.message : "Could not start the exam.");
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -751,68 +848,68 @@ export default function StudentAssessment({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-2xl w-full space-y-6">
-          <Card className="p-8 text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Loading assessment...
-            </h2>
-            <p className="text-base text-gray-600">
-              Please wait while we prepare your exam
-            </p>
-          </Card>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <StatePanel
+          kind="loading"
+          title="Preparing your assessment"
+          description="Please wait while we load the exam."
+          className="w-full max-w-2xl"
+        />
       </div>
     );
   }
 
   if (isError || !paper) {
     return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
-        <div>
-          Failed to load assessment:{" "}
-          {error instanceof Error ? error.message : "Unknown error"}
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <StatePanel
+          kind="error"
+          title="Couldn’t load the assessment"
+          description={error instanceof Error ? error.message : "Please try again."}
+          action={
+            <Button variant="outline" size="sm" onClick={() => void refetch()}>
+              Try again
+            </Button>
+          }
+          className="w-full max-w-2xl"
+        />
       </div>
     );
   }
 
   // Show start screen before exam begins
-  if (!hasStartedExam) {
+  if (!hasStartedExam && !submitted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4">
         <div className="max-w-2xl w-full space-y-6">
           <Card className="p-8 space-y-6">
             <div className="text-center space-y-4">
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-foreground">
                 {paper.title}
               </h1>
-              <p className="text-lg text-gray-600">{paper.description}</p>
+              <p className="text-lg text-muted-foreground">{paper.description}</p>
             </div>
 
             <div className="border-t border-b py-4 space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-gray-700 font-medium">Duration:</span>
-                <span className="text-gray-900">
+                <span className="text-muted-foreground font-medium">Duration:</span>
+                <span className="text-foreground">
                   {paper.durationMinutes} minutes
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-700 font-medium">
+                <span className="text-muted-foreground font-medium">
                   Total Questions:
                 </span>
-                <span className="text-gray-900">{paper.questions?.length}</span>
+                <span className="text-foreground">{paper.questions?.length}</span>
               </div>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-2">
-              <h3 className="font-semibold text-yellow-900 flex items-center gap-2">
+            <div className="bg-warning/15 border border-warning/30 rounded-lg p-4 space-y-2">
+              <h3 className="font-semibold text-warning-foreground flex items-center gap-2">
                 ⚠️ Important Instructions
               </h3>
-              <ul className="text-sm text-yellow-800 space-y-1 list-disc list-inside">
+              <ul className="text-sm text-warning-foreground space-y-1 list-disc list-inside">
                 <li>The exam will open in fullscreen mode</li>
                 <li>Do not exit fullscreen or switch windows</li>
                 <li>Copy/paste and right-click are disabled</li>
@@ -825,11 +922,11 @@ export default function StudentAssessment({
             </div>
 
             {isDevToolsOpen && (
-              <div className="bg-red-50 border border-red-300 rounded-lg p-4 space-y-2">
-                <h3 className="font-semibold text-red-900 flex items-center gap-2">
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 space-y-2">
+                <h3 className="font-semibold text-destructive flex items-center gap-2">
                   🚫 Developer Tools Detected
                 </h3>
-                <p className="text-sm text-red-800">
+                <p className="text-sm text-destructive">
                   Please close Developer Tools (DevTools) before starting the
                   exam. Press F12 or close the DevTools panel to continue.
                 </p>
@@ -840,18 +937,19 @@ export default function StudentAssessment({
               size="lg"
               className="w-full"
               onClick={handleStartExam}
-              disabled={isDevToolsOpen || !canStartExam}
+              disabled={isDevToolsOpen || !canStartExam || isStarting}
             >
-              {isDevToolsOpen
+              {isStarting
+                ? "Opening exam..."
+                : isDevToolsOpen
                 ? "Close DevTools to Start"
                 : currentTime < startsAt
                 ? "Exam Not Open Yet"
-                : currentTime > endsAt
-                ? "Exam Window Closed"
-                : "Start Exam"}
+                : "Start or Resume Exam"}
             </Button>
+            {submissionError && <p role="alert" className="text-center text-sm text-destructive">{submissionError}</p>}
             {!canStartExam && (
-              <p className="text-center text-sm text-gray-600">
+              <p className="text-center text-sm text-muted-foreground">
                 {currentTime < startsAt
                   ? `The exam opens ${new Date(paper.startDate).toLocaleString()}.`
                   : "The exam submission window has closed."}
@@ -865,14 +963,14 @@ export default function StudentAssessment({
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="max-w-2xl w-full space-y-6">
           <Card className="p-8 text-center space-y-4">
             <div className="text-6xl">🎉</div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               Submission received
             </h2>
-            <p className="text-base text-gray-600">
+            <p className="text-base text-muted-foreground">
               {totalAnswers} answer{totalAnswers !== 1 ? "s" : ""} submitted
             </p>
             <Button
@@ -898,16 +996,16 @@ export default function StudentAssessment({
   // Loading state during submission
   if (isSubmitting) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="max-w-2xl w-full space-y-6">
           <Card className="p-8 text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               Submitting your assessment...
             </h2>
-            <p className="text-base text-gray-600">
+            <p className="text-base text-muted-foreground">
               Please wait while we process your submission
             </p>
           </Card>
@@ -919,31 +1017,31 @@ export default function StudentAssessment({
   return (
     <>
       <CalculatorPopup />
-      <div className="h-screen flex flex-col bg-[#43a3dd]">
+      <div className="h-screen flex flex-col bg-muted/30">
         {/* Fullscreen Exit Lock Overlay */}
         {isExamLocked && (
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
             <Card className="max-w-md w-full mx-4 p-8 space-y-6">
               <div className="text-center space-y-4">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
                   <Lock className="h-7 w-7" />
                 </div>
-                <h2 className="text-2xl font-bold text-red-600">
+                <h2 className="text-2xl font-bold text-destructive">
                   Exam Interface Locked
                 </h2>
-                <p className="text-gray-700">
+                <p className="text-foreground">
                   {lockReason
                     ? getSecurityViolationMessage(lockReason)
                     : "The exam interface has been locked to maintain exam integrity."}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Ask an admin for the unlock code, enter it below, then return
                   to fullscreen to continue.
                 </p>
               </div>
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-foreground">
                     Admin unlock code
                   </label>
                   <Input
@@ -961,7 +1059,7 @@ export default function StudentAssessment({
                   />
                 </div>
                 {unlockError ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                     {unlockError}
                   </div>
                 ) : null}
@@ -975,7 +1073,7 @@ export default function StudentAssessment({
                   {isUnlocking ? "Verifying code..." : "Unlock Exam"}
                 </Button>
               </div>
-              <p className="text-xs text-center text-gray-500">
+              <p className="text-xs text-center text-muted-foreground">
                 Security incidents are logged for review.
               </p>
             </Card>
@@ -991,13 +1089,14 @@ export default function StudentAssessment({
           onSubmit={handleSubmit}
           canSubmitEarly={canSubmitEarly}
           earlySubmitDisabledMessage={earlySubmitDisabledMessage}
+          draftSaveState={draftSaveState}
         />
 
         {/* Main Content Area */}
-        <div className="container mx-auto flex-1 flex pt-20 overflow-hidden">
+        <div className="container mx-auto flex min-h-0 flex-1 flex-col overflow-hidden pt-16 sm:flex-row sm:pt-20">
           {/* Center Workspace */}
-          <div id="exam-workspace" className="flex-1 overflow-y-auto px-6 py-6">
-            <div className="max-w-4xl p-4 mx-auto bg-[#b8bbb4]">
+          <div id="exam-workspace" className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-6">
+            <div className="mx-auto max-w-4xl rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
               {selectedQuestion ? (
                 <QuestionCard
                   question={selectedQuestion}
@@ -1006,16 +1105,16 @@ export default function StudentAssessment({
                   readonly={isExamLocked}
                 />
               ) : (
-                <div className="text-center text-gray-500 py-12">
+                <div className="text-center text-muted-foreground py-12">
                   Select a question from the right panel
                 </div>
               )}
 
               {/* Error message */}
               {submissionError && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800 font-medium">Error</p>
-                  <p className="text-sm text-red-600 mt-1">{submissionError}</p>
+                <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+                  <p className="text-sm font-medium text-destructive">Error</p>
+                  <p className="mt-1 text-sm text-destructive">{submissionError}</p>
                 </div>
               )}
 
@@ -1036,7 +1135,7 @@ export default function StudentAssessment({
                   {isSubmitting ? "Submitting..." : "Submit Assessment"}
                 </Button>
                 {!canSubmitEarly && earlySubmitDisabledMessage ? (
-                  <p className="text-sm text-gray-600 text-center">
+                  <p className="text-sm text-muted-foreground text-center">
                     {earlySubmitDisabledMessage}
                   </p>
                 ) : null}

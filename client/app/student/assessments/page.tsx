@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StudentHeader } from "@/components/student-header";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StatePanel } from "@/components/ui/state-panel";
 import { Card } from "@/components/ui/card";
+import { PageShell } from "@/components/ui/page-shell";
 import { FileText, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useAssessments } from "@/hooks/queries/useAssessments";
 import { useAccessRequestMutations } from "@/hooks/queries/useAccessRequests";
@@ -16,7 +19,7 @@ const PAGE_SIZE = 10;
 export default function StudentDashboard() {
   const router = useRouter();
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError, error } = useAssessments({
+  const { data, isLoading, isError, refetch } = useAssessments({
     page,
     limit: PAGE_SIZE,
   });
@@ -73,6 +76,10 @@ export default function StudentDashboard() {
     const isExpired = new Date(assessment.endDate) < new Date();
     const hasStarted = new Date(assessment.startDate) <= new Date();
 
+    if (assessment.attemptStatus === "IN_PROGRESS") {
+      return "in-progress";
+    }
+
     // If student has submitted
     if (assessment.hasSubmitted) {
       return "submitted";
@@ -113,7 +120,7 @@ export default function StudentDashboard() {
   };
 
   const handleRequest = (assessment: (typeof safeAssessments)[number]) => {
-    if (assessment.accessStatus) return;
+    if (assessment.accessStatus && assessment.accessStatus !== "REJECTED") return;
     create.mutate({
       paperId: assessment.id,
     });
@@ -123,27 +130,42 @@ export default function StudentDashboard() {
     <div className="min-h-screen bg-background">
       <StudentHeader studentName={studentName} schoolCode={schoolCode} />
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <PageShell>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-foreground">My Assessments</h1>
+          <h1 className="page-title">My Assessments</h1>
         </div>
         {isLoading && (
-          <p className="text-sm text-muted-foreground mb-4">
-            Loading assessments...
-          </p>
+          <StatePanel kind="loading" title="Loading assessments" className="mb-4" />
         )}
         {isError && (
-          <p className="text-sm text-destructive mb-4">
-            Failed to load assessments:{" "}
-            {error instanceof Error ? error.message : "Unknown error"}
+          <StatePanel
+            kind="error"
+            title="Couldn’t load assessments"
+            description="Please try again."
+            action={
+              <Button variant="outline" size="sm" onClick={() => void refetch()}>
+                Try again
+              </Button>
+            }
+            className="mb-4"
+          />
+        )}
+        {create.isError && (
+          <p role="alert" className="mb-4 text-sm text-destructive">
+            We couldn&apos;t update your access request. Please try again.
           </p>
+        )}
+        {!isLoading && !isError && safeAssessments.length === 0 && (
+          <StatePanel
+            kind="empty"
+            title="No assessments available yet"
+            description="Check back later for assessments assigned to you."
+          />
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {safeAssessments.map((assessment) => {
             const duration = assessment.durationMinutes;
-            const marks = assessment._count?.questions
-              ? assessment._count.questions * 10
-              : 100;
+            const questionCount = assessment._count?.questions;
             const state = getAssessmentState(assessment);
 
             return (
@@ -160,8 +182,9 @@ export default function StudentDashboard() {
                         {assessment.title}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {assessment.description || "Assessment"} • {duration}m •{" "}
-                        {marks} marks
+                        {assessment.description || "Assessment"} • {duration}m
+                        {questionCount !== undefined &&
+                          ` • ${questionCount} ${questionCount === 1 ? "question" : "questions"}`}
                       </p>
                       <p className="text-sm text-foreground mt-2">
                         <span className="font-semibold text-primary">
@@ -178,10 +201,10 @@ export default function StudentDashboard() {
                       {/* Submitted state */}
                       {state === "submitted" && (
                         <>
-                          <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium bg-blue-500/10 text-blue-600">
+                          <Badge variant="info" className="px-3 py-1.5">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Submitted
-                          </span>
+                          </Badge>
                           <Button size="sm" variant="outline" asChild>
                             <Link
                               href={`/student/feedback/${assessment?.submissionId}`}
@@ -193,19 +216,19 @@ export default function StudentDashboard() {
                       )}
 
                       {/* Approved - can start */}
-                      {state === "approved" && (
+                      {(state === "approved" || state === "in-progress") && (
                         <>
-                          <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium bg-green-500/20 text-green-700">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Approved
-                          </span>
+                          <Badge variant={state === "approved" ? "success" : "warning"} className="px-3 py-1.5">
+                            {state === "approved" ? <CheckCircle className="w-3 h-3 mr-1" /> : <Clock className="w-3 h-3 mr-1" />}
+                            {state === "approved" ? "Approved" : "In Progress"}
+                          </Badge>
                           <Button
                             size="sm"
                             onClick={() =>
                               (window.location.href = `/student/assessments/${assessment.id}`)
                             }
                           >
-                            Start
+                            {state === "approved" ? "Start" : "Resume"}
                           </Button>
                         </>
                       )}
@@ -213,10 +236,10 @@ export default function StudentDashboard() {
                       {/* Approved but not started yet */}
                       {state === "approved-not-started" && (
                         <>
-                          <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium bg-green-500/20 text-green-700">
+                          <Badge variant="success" className="px-3 py-1.5">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Approved
-                          </span>
+                          </Badge>
                           <Button size="sm" disabled>
                             Not Started Yet
                           </Button>
@@ -225,18 +248,28 @@ export default function StudentDashboard() {
 
                       {/* Pending approval */}
                       {state === "pending" && (
-                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium bg-yellow-500/20 text-yellow-700">
+                        <Badge variant="warning" className="px-3 py-1.5">
                           <Clock className="w-3 h-3 mr-1" />
                           Pending Approval
-                        </span>
+                        </Badge>
                       )}
 
                       {/* Rejected */}
                       {state === "rejected" && (
-                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium bg-red-500/20 text-red-700">
-                          <XCircle className="w-3 h-3 mr-1" />
-                          Access Denied
-                        </span>
+                        <>
+                          <Badge variant="danger" className="px-3 py-1.5">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Request declined
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRequest(assessment)}
+                            disabled={create.isPending}
+                          >
+                            Request again
+                          </Button>
+                        </>
                       )}
 
                       {/* Can request access */}
@@ -248,15 +281,15 @@ export default function StudentDashboard() {
                           onClick={() => handleRequest(assessment)}
                           disabled={create.isPending}
                         >
-                          Request Access
+                          {create.isPending ? "Requesting..." : "Request Access"}
                         </Button>
                       )}
 
                       {/* Expired/Not started */}
                       {(state === "expired" || state === "not-started") && (
-                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium bg-gray-500/20 text-gray-700">
+                        <Badge variant="muted" className="px-3 py-1.5">
                           {state === "expired" ? "Expired" : "Not Started"}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -294,7 +327,7 @@ export default function StudentDashboard() {
             </div>
           </div>
         )}
-      </main>
+      </PageShell>
     </div>
   );
 }

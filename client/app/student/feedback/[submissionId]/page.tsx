@@ -4,7 +4,9 @@ import { use } from "react"
 import Link from "next/link"
 import he from "he"
 import { Card } from "@/components/ui/card"
+import { PageShell } from "@/components/ui/page-shell"
 import { Button } from "@/components/ui/button"
+import { StatePanel } from "@/components/ui/state-panel"
 import { useSubmissionDetail } from "@/hooks/queries/useSubmissionDetail"
 import { GraphAnswerEditor } from "@/components/exam/graph-answer"
 import { DrawingAnswerEditor } from "@/components/exam/drawing-answer"
@@ -22,6 +24,7 @@ export default function StudentFeedbackPage({
     data: submissionDetail,
     isLoading: isLoadingDetail,
     isError: isDetailError,
+    refetch: refetchDetail,
   } = useSubmissionDetail(submissionId)
   const title = submissionDetail?.paper?.title ?? "Feedback"
   const decodeHtml = (value?: string | null) => (value ? he.decode(value) : "")
@@ -29,12 +32,12 @@ export default function StudentFeedbackPage({
     items?.length ? [...items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)) : []
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div className="min-h-screen bg-background">
+      <PageShell width="narrow" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">Feedback for</p>
-            <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+            <h1 className="page-title">{title}</h1>
           </div>
           <Button variant="outline" asChild>
             <Link href="/student/assessments">Back to dashboard</Link>
@@ -42,19 +45,32 @@ export default function StudentFeedbackPage({
         </div>
 
         {!submissionId ? (
-          <Card className="p-6 text-sm text-muted-foreground">
-            No submission selected. Open feedback from your assessments list.
-          </Card>
+          <StatePanel
+            kind="empty"
+            title="No submission selected"
+            description="Open feedback from your assessments list."
+          />
         ) : isLoadingDetail ? (
-          <Card className="p-6 text-sm text-muted-foreground">Loading feedback...</Card>
+          <StatePanel kind="loading" title="Loading feedback" />
         ) : isDetailError ? (
-          <Card className="p-6 text-sm text-destructive">Failed to load feedback.</Card>
+          <StatePanel
+            kind="error"
+            title="Couldn’t load feedback"
+            description="Please try again."
+            action={
+              <Button variant="outline" size="sm" onClick={() => void refetchDetail()}>
+                Try again
+              </Button>
+            }
+          />
         ) : submissionDetail ? (
           <Card className="p-6 space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-foreground">Your marks</h2>
               <p className="text-sm text-muted-foreground">
-                Review your scores for each question below.
+                {submissionDetail.status === "REVIEWED"
+                  ? "Review your scores for each question below."
+                  : "Your submission is awaiting review. Marks will appear here when grading is complete."}
               </p>
             </div>
             <div className="space-y-3">
@@ -95,7 +111,9 @@ export default function StudentFeedbackPage({
                             />
                           )}
                           <div className="text-[11px] text-muted-foreground">
-                            Score: {assigned}/{maxScore}
+                            {submissionDetail.status === "REVIEWED"
+                              ? `Score: ${assigned}/${maxScore}`
+                              : "Awaiting review"}
                           </div>
                           <div className="text-sm bg-muted/40 rounded p-2 min-h-10 text-foreground leading-snug">
                             {isGraph ? (
@@ -158,9 +176,9 @@ export default function StudentFeedbackPage({
             </div>
           </Card>
         ) : (
-          <Card className="p-6 text-sm text-muted-foreground">No feedback available yet.</Card>
+          <StatePanel kind="empty" title="No feedback available yet" />
         )}
-      </div>
+      </PageShell>
     </div>
   )
 }

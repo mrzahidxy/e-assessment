@@ -8,6 +8,9 @@ import {
   createSubmissionSchema,
   gradeSubmissionSchema,
   listSubmissionsQuerySchema,
+  saveDraftSchema,
+  startAttemptSchema,
+  submitAttemptSchema,
   submissionIdParamSchema,
 } from '../schemas/submission.schema';
 
@@ -20,6 +23,13 @@ router.get(
   submissionController.list
 );
 
+router.post(
+  '/start',
+  requireAuth([UserRole.STUDENT]),
+  validateRequest(startAttemptSchema),
+  submissionController.startAttempt
+);
+
 router.get(
   '/:id',
   requireAuth(),
@@ -28,6 +38,22 @@ router.get(
 );
 
 router.post('/', requireAuth([UserRole.STUDENT]), validateRequest(createSubmissionSchema), submissionController.create);
+
+router.put(
+  '/:id/draft',
+  requireAuth([UserRole.STUDENT]),
+  validateRequest(submissionIdParamSchema, 'params'),
+  validateRequest(saveDraftSchema),
+  submissionController.saveDraft
+);
+
+router.post(
+  '/:id/submit',
+  requireAuth([UserRole.STUDENT]),
+  validateRequest(submissionIdParamSchema, 'params'),
+  validateRequest(submitAttemptSchema),
+  submissionController.submitAttempt
+);
 
 router.post(
   '/:id/grades',

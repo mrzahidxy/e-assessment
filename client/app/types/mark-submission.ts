@@ -63,6 +63,9 @@ export interface Assessment {
   accessStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
   hasSubmitted?: boolean;
   submissionId?: string | null;
+  attemptStatus?: "IN_PROGRESS" | "SUBMITTED" | "REVIEWED" | null;
+  attemptStartedAt?: string | null;
+  attemptDeadlineAt?: string | null;
 }
 
 export interface SubmissionAnswer {
@@ -78,8 +81,9 @@ export interface Submission {
   id: string;
   studentId: string;
   paperId: string;
-  status: "SUBMITTED" | "REVIEWED";
-  submittedAt: string;
+  status: "IN_PROGRESS" | "SUBMITTED" | "REVIEWED";
+  startedAt: string;
+  submittedAt: string | null;
   createdAt: string;
   updatedAt: string;
   student: {

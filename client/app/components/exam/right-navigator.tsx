@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusIcon } from "./status-icon";
 import { useState, memo } from "react";
@@ -54,9 +54,9 @@ export const RightNavigator = memo(function RightNavigator({
   };
 
   return (
-    <div className="w-48 border-l border-gray-200 bg-gray-50 flex flex-col">
+    <div className="flex h-40 w-full flex-col border-t border-border bg-muted/30 sm:h-auto sm:w-48 sm:border-l sm:border-t-0">
       {/* Prev button */}
-      <div className="p-3 border-b border-gray-200">
+      <div className="border-b border-border p-3">
         <Button
           variant="outline"
           size="sm"
@@ -81,50 +81,61 @@ export const RightNavigator = memo(function RightNavigator({
             totalCount > 0 ? (answeredCount / totalCount) * 100 : 0;
 
           return (
-            <div key={question.id} className="border-b border-gray-200">
+            <div key={question.id} className="border-b border-border">
               {/* Question header */}
-              <button
-                onClick={() => {
-                  onSelectQuestion(question.id);
-                  if (!isExpanded) {
-                    toggleQuestion(question.id);
-                  }
-                }}
-                className={`w-full px-3 py-2.5 flex items-center justify-between text-left transition-colors ${
-                  isSelected ? "bg-blue-100" : "hover:bg-gray-100"
-                }`}
-              >
-                <div className="flex items-center gap-2">
+              <div className="flex items-center border-b border-border">
+                <button
+                  onClick={() => {
+                    onSelectQuestion(question.id);
+                    if (!isExpanded) {
+                      toggleQuestion(question.id);
+                    }
+                  }}
+                  aria-current={isSelected ? "step" : undefined}
+                  aria-label={`Question ${question.position}, ${answeredCount} of ${totalCount} subquestions answered`}
+                  className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left transition-colors ${
+                    isSelected ? "bg-primary/10" : "hover:bg-muted/60"
+                  }`}
+                >
                   <StatusIcon percentage={percentage} />
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm font-semibold text-foreground">
                     {question.position} ({question.marks})
                   </span>
-                </div>
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleQuestion(question.id);
-                  }}
-                  className="p-0.5 hover:bg-gray-200 rounded cursor-pointer"
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    {answeredCount}/{totalCount}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`${isExpanded ? "Collapse" : "Expand"} question ${question.position}`}
+                  aria-expanded={isExpanded}
+                  onClick={() => toggleQuestion(question.id)}
+                  className="rounded-sm p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 text-gray-600" />
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-600" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   )}
-                </div>
-              </button>
+                </button>
+              </div>
 
               {/* Subquestions */}
               {isExpanded && (
-                <div className="bg-white">
+                <div className="bg-card">
                   {question.subQuestions.map((subQ) => (
                     <button
                       key={subQ.id}
                       onClick={() => onSelectSubQuestion(subQ.id)}
-                      className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-gray-50 transition-colors text-left"
+                      aria-label={`Question ${question.position}${subQ.label}, ${subQ.answered ? "answered" : "not answered"}`}
+                      className="w-full px-3 py-1.5 flex items-center gap-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
-                      <span className="text-xs text-gray-700">
+                      {subQ.answered ? (
+                        <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-success" />
+                      ) : (
+                        <Circle aria-hidden="true" className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                      <span className="text-xs text-foreground">
                         Question {question.position}
                         {subQ.label}
                       </span>
@@ -138,7 +149,7 @@ export const RightNavigator = memo(function RightNavigator({
       </div>
 
       {/* Next button */}
-      <div className="p-3 border-t border-gray-200">
+      <div className="border-t border-border p-3">
         <Button
           variant="outline"
           size="sm"

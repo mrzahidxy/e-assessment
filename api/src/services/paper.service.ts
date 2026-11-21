@@ -3,6 +3,7 @@ import {
   PaperStatus,
   Prisma,
   QuestionType,
+  SubmissionStatus,
   UserRole,
 } from '@prisma/client';
 
@@ -59,6 +60,9 @@ type PaperListItem = Prisma.QuestionPaperGetPayload<{
 }> & {
   accessStatus?: AccessStatus | null;
   hasSubmitted?: boolean;
+  attemptStatus?: SubmissionStatus | null;
+  attemptStartedAt?: Date | null;
+  attemptDeadlineAt?: Date | null;
 };
 
 type PaperDetailResponse = Prisma.QuestionPaperGetPayload<{
@@ -426,7 +430,7 @@ export const paperService = {
             studentId: actor.id,
             paperId: { in: papers.map((paper) => paper.id) },
           },
-          select: { id: true, paperId: true },
+          select: { id: true, paperId: true, status: true, startedAt: true },
         }),
       ]);
 
@@ -437,12 +441,23 @@ export const paperService = {
         submissions.map((submission) => [submission.paperId, submission])
       );
 
-      responsePapers = papers.map((paper) => ({
-        ...paper,
-        accessStatus: accessStatusByPaperId.get(paper.id) ?? null,
-        hasSubmitted: submissionByPaperId.has(paper.id),
-        submissionId: submissionByPaperId.get(paper.id)?.id ?? null,
-      }));
+      responsePapers = papers.map((paper) => {
+        const attempt = submissionByPaperId.get(paper.id);
+        return {
+          ...paper,
+          accessStatus: accessStatusByPaperId.get(paper.id) ?? null,
+          hasSubmitted: !!attempt && attempt.status !== SubmissionStatus.IN_PROGRESS,
+          submissionId: attempt?.id ?? null,
+          attemptStatus: attempt?.status ?? null,
+          attemptStartedAt: attempt?.startedAt ?? null,
+          attemptDeadlineAt: attempt
+            ? new Date(Math.min(
+                attempt.startedAt.getTime() + paper.durationMinutes * 60_000,
+                paper.endDate.getTime()
+              ))
+            : null,
+        };
+      });
     }
 
     return {
