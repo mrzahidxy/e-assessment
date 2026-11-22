@@ -49,12 +49,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-xl p-6 space-y-4">
+    <div className="min-h-screen bg-background px-4 py-12 sm:px-6">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-8 border-b border-border pb-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Account
+          </p>
+          <h1 className="mt-2 page-title">Profile</h1>
+        </div>
+      <Card className="w-full max-w-xl gap-5 border-border p-6 sm:p-8">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Profile</p>
-            <h1 className="text-2xl font-bold text-foreground">{user.name}</h1>
+            <h2 className="text-2xl font-bold text-foreground">{user.name}</h2>
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
           <Badge variant="secondary" className="capitalize">
@@ -72,6 +78,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </Card>
+      </div>
     </div>
   )
 }

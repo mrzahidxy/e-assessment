@@ -1,8 +1,9 @@
 "use client"
 
-import { useRouter } from 'next/navigation';
+import Link from "next/link"
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button"
-import { LogOut } from "lucide-react"
+import { GraduationCap, LogOut } from "lucide-react"
 import { useAuthStore } from '@/lib/auth-store';
 
 interface StudentHeaderProps {
@@ -12,6 +13,7 @@ interface StudentHeaderProps {
 
 export function StudentHeader({ studentName, schoolCode }: StudentHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname()
   const { user, logout } = useAuthStore();
 
   const handleLogout = async () => {
@@ -24,18 +26,34 @@ export function StudentHeader({ studentName, schoolCode }: StudentHeaderProps) {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-accent-foreground font-bold">
-              S
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex min-h-[76px] flex-wrap items-center justify-between gap-3 py-3">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center bg-primary text-primary-foreground">
+                <GraduationCap className="size-5" aria-hidden="true" />
+              </span>
+              <span className="text-sm font-bold tracking-tight text-foreground">eAssessment</span>
             </div>
-            <h1 className="page-title">
-              Student Portal
-            </h1>
+            <nav aria-label="Student navigation" className="flex items-center gap-1">
+              <Link
+                href="/student/assessments"
+                aria-current={pathname === "/student/assessments" ? "page" : undefined}
+                className={`px-3 py-2 text-sm font-medium ${pathname === "/student/assessments" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+              >
+                Assessments
+              </Link>
+              <Link
+                href="/student/feedback"
+                aria-current={pathname.startsWith("/student/feedback") ? "page" : undefined}
+                className={`px-3 py-2 text-sm font-medium ${pathname.startsWith("/student/feedback") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+              >
+                Feedback
+              </Link>
+            </nav>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="text-right">
+          <div className="flex items-center gap-3 sm:gap-5">
+            <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-foreground">
                 {displayName}
               </p>
@@ -43,9 +61,9 @@ export function StudentHeader({ studentName, schoolCode }: StudentHeaderProps) {
                 School Code: {displaySchoolCode}
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Log out
+            <Button variant="outline" size="sm" onClick={handleLogout} aria-label="Log out">
+              <LogOut className="size-4 sm:mr-2" />
+              <span className="hidden sm:inline">Log out</span>
             </Button>
           </div>
         </div>

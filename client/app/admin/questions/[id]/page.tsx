@@ -83,8 +83,8 @@ export default function AdminQuestionPage({
                   size="sm"
                   className={`h-7 px-3 text-xs ${
                     activeTab === tab.id
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                   onClick={() => setActiveTab(tab.id as "requests" | "grading")}
                 >

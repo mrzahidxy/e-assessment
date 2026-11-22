@@ -94,7 +94,7 @@ export const RightNavigator = memo(function RightNavigator({
                   aria-current={isSelected ? "step" : undefined}
                   aria-label={`Question ${question.position}, ${answeredCount} of ${totalCount} subquestions answered`}
                   className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left transition-colors ${
-                    isSelected ? "bg-primary/10" : "hover:bg-muted/60"
+                    isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted/60"
                   }`}
                 >
                   <StatusIcon percentage={percentage} />

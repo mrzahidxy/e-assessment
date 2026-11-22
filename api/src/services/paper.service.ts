@@ -482,6 +482,10 @@ export const paperService = {
     }
 
     if (actor.role !== UserRole.ADMIN) {
+      if (paper.status !== PaperStatus.PUBLISHED) {
+        throw new HttpError(404, 'Question paper not found');
+      }
+
       const hasAccess = await prisma.accessRequest.findFirst({
         where: {
           paperId,

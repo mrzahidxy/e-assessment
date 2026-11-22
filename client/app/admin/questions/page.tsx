@@ -5,10 +5,9 @@ import Link from "next/link"
 import { AdminHeader } from "@/components/admin-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
 import { StatePanel } from "@/components/ui/state-panel"
 import { PageShell } from "@/components/ui/page-shell"
-import { FileText, Plus, ShieldAlert } from "lucide-react"
+import { FileText, Plus } from "lucide-react"
 import { useQuestions } from "@/hooks/queries/useQuestions"
 import { formatStatusLabel, getStatusVariant } from "@/lib/helpers/questions"
 import type { PaperRecord } from "@/types/questions"
@@ -44,21 +43,15 @@ export default function AdminPapersPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminHeader title="Question Papers" />
+      <AdminHeader title="" />
 
       <PageShell width="compact">
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
           <div>
-            <h1 className="page-title">All Papers</h1>
+            <h1 className="page-title">Question Papers</h1>
             <p className="page-description">Create, view, and manage assessments</p>
           </div>
           <div className="flex gap-3">
-            <Link href="/admin/security">
-              <Button variant="outline" size="sm" className="gap-2">
-                <ShieldAlert className="w-3 h-3" />
-                Security
-              </Button>
-            </Link>
             <Link href="/admin/questions/create-paper">
               <Button size="sm" className="gap-2">
                 <Plus className="w-3 h-3" />
@@ -106,48 +99,47 @@ export default function AdminPapersPage() {
 
         {papers.length > 0 && (
           <>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="overflow-hidden border border-border bg-card">
+              <div className="hidden grid-cols-[minmax(0,1fr)_9rem_12rem] gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground sm:grid">
+                <span>Assessment paper</span>
+                <span>Status</span>
+                <span className="text-right">Actions</span>
+              </div>
               {papers.map((paper) => {
                 const statusLabel = formatStatusLabel(paper.status)
                 const description = paper.description ?? "General"
                 const questionCount = paper._count?.questions ?? "—"
 
                 return (
-                  <Card
+                  <div
                     key={paper.id}
-                    className="flex flex-col gap-3 p-4 transition hover:border-primary/40 hover:shadow-md sm:p-5"
+                    className="grid gap-3 border-b border-border px-4 py-4 last:border-b-0 transition-colors hover:bg-muted/30 sm:grid-cols-[minmax(0,1fr)_9rem_12rem] sm:items-center sm:gap-4 sm:px-5"
                   >
                     <div className="flex min-w-0 items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="line-clamp-2 break-words text-base font-semibold text-foreground">
+                      <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center bg-primary/8 text-primary">
+                        <FileText className="size-[18px]" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="break-words text-sm font-semibold text-foreground">
                           {paper.title}
-                        </h3>
-                        <p className="mt-1 line-clamp-2 break-words text-xs text-muted-foreground">
-                          {description} • {questionCount} questions
+                        </h2>
+                        <p className="mt-1 break-words text-sm text-muted-foreground">
+                          {description} <span aria-hidden="true">·</span> {questionCount} questions
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-                      <Badge variant={getStatusVariant(paper.status)}>
-                        {statusLabel}
-                      </Badge>
-                      <div className="ml-auto flex items-center gap-2">
-                        <Link href={`/admin/questions/edit-paper/${paper.id}`}>
-                          <Button size="sm" title="Edit paper details">
-                            Edit
-                          </Button>
-                        </Link>
-                        <Link href={`/admin/questions/${paper.id}`}>
-                          <Button size="sm" variant="outline" title="View paper">
-                            View
-                          </Button>
-                        </Link>
-                      </div>
+                    <div className="pl-12 sm:pl-0">
+                      <Badge variant={getStatusVariant(paper.status)}>{statusLabel}</Badge>
                     </div>
-                  </Card>
+                    <div className="flex items-center gap-2 pl-12 sm:justify-end sm:pl-0">
+                      <Link href={`/admin/questions/edit-paper/${paper.id}`}>
+                        <Button size="sm" variant="outline" title="Edit paper details">Edit</Button>
+                      </Link>
+                      <Link href={`/admin/questions/${paper.id}`}>
+                        <Button size="sm" title="View paper">Open</Button>
+                      </Link>
+                    </div>
+                  </div>
                 )
               })}
             </div>

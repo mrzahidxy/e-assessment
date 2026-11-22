@@ -162,7 +162,7 @@ export default function StudentDashboard() {
             description="Check back later for assessments assigned to you."
           />
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-3">
           {safeAssessments.map((assessment) => {
             const duration = assessment.durationMinutes;
             const questionCount = assessment._count?.questions;
@@ -171,7 +171,7 @@ export default function StudentDashboard() {
             return (
               <Card
                 key={assessment.id}
-                className="p-6 flex flex-col hover:bg-muted/50 transition-colors"
+                className="gap-4 border-border p-5 transition-colors hover:border-primary/40 hover:bg-muted/30 sm:p-6"
               >
                 <div className="flex items-start gap-3 mb-3">
                   <FileText className="w-5 h-5 text-primary mt-2" />

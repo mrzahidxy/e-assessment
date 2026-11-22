@@ -4,16 +4,16 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Primary - Deep Blue for academic trust */
-  --primary: oklch(0.32 0.15 258);
+  /* Cobalt blue carries primary actions across the assessment workflow. */
+  --primary: oklch(0.48 0.23 266);
   --primary-foreground: oklch(0.98 0 0);
 
-  /* Accent - Teal for active states and highlights */
-  --accent: oklch(0.6 0.15 180);
-  --accent-foreground: oklch(0.98 0 0);
+  /* Bright lime is reserved for selected states and small highlights. */
+  --accent: oklch(0.91 0.18 125);
+  --accent-foreground: oklch(0.2 0.03 260);
 
   /* Success - Green for positive actions */
-  --success: oklch(0.65 0.15 130);
+  --success: oklch(0.53 0.16 151);
   --success-foreground: oklch(0.98 0 0);
 
   /* Destructive - Red for warning/reject actions */
@@ -29,41 +29,41 @@
   --answer-cell-foreground: oklch(0.34 0.09 350);
 
   /* Neutral palette */
-  --background: oklch(0.98 0.001 0);
-  --foreground: oklch(0.2 0.02 0);
+  --background: oklch(0.98 0.012 265);
+  --foreground: oklch(0.2 0.025 265);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 0);
-  --muted: oklch(0.92 0.01 0);
-  --muted-foreground: oklch(0.55 0.02 0);
-  --border: oklch(0.9 0.01 0);
-  --input: oklch(0.96 0.01 0);
+  --card-foreground: oklch(0.2 0.025 265);
+  --muted: oklch(0.95 0.015 265);
+  --muted-foreground: oklch(0.48 0.025 265);
+  --border: oklch(0.89 0.02 265);
+  --input: oklch(1 0 0);
 
   /* Other tokens */
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.02 0);
-  --secondary: oklch(0.92 0.01 0);
-  --secondary-foreground: oklch(0.2 0.02 0);
-  --ring: oklch(0.32 0.15 258);
-  --chart-1: oklch(0.32 0.15 258);
-  --chart-2: oklch(0.6 0.15 180);
-  --chart-3: oklch(0.65 0.15 130);
+  --secondary: oklch(0.94 0.025 265);
+  --secondary-foreground: oklch(0.24 0.035 265);
+  --ring: oklch(0.54 0.2 266);
+  --chart-1: oklch(0.48 0.23 266);
+  --chart-2: oklch(0.75 0.16 125);
+  --chart-3: oklch(0.62 0.12 220);
   --chart-4: oklch(0.72 0.15 50);
   --chart-5: oklch(0.55 0.15 25);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.98 0.001 0);
-  --sidebar-foreground: oklch(0.2 0.02 0);
-  --sidebar-primary: oklch(0.32 0.15 258);
+  --radius: 0.4rem;
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.2 0.025 265);
+  --sidebar-primary: oklch(0.48 0.23 266);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.6 0.15 180);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.9 0.01 0);
-  --sidebar-ring: oklch(0.32 0.15 258);
+  --sidebar-accent: oklch(0.94 0.1 125);
+  --sidebar-accent-foreground: oklch(0.2 0.03 260);
+  --sidebar-border: oklch(0.9 0.02 265);
+  --sidebar-ring: oklch(0.54 0.2 266);
 }
 
 .dark {
   --primary: oklch(0.75 0.12 258);
   --primary-foreground: oklch(0.15 0.02 0);
-  --accent: oklch(0.7 0.12 180);
+  --accent: oklch(0.79 0.16 125);
   --accent-foreground: oklch(0.15 0.02 0);
   --success: oklch(0.65 0.12 130);
   --success-foreground: oklch(0.15 0.02 0);
@@ -85,7 +85,7 @@
   --popover-foreground: oklch(0.95 0.01 0);
   --secondary: oklch(0.3 0.02 0);
   --secondary-foreground: oklch(0.95 0.01 0);
-  --ring: oklch(0.7 0.12 258);
+  --ring: oklch(0.72 0.16 266);
   --chart-1: oklch(0.75 0.12 258);
   --chart-2: oklch(0.7 0.12 180);
   --chart-3: oklch(0.65 0.12 130);
@@ -95,8 +95,8 @@
   --sidebar-foreground: oklch(0.95 0.01 0);
   --sidebar-primary: oklch(0.75 0.12 258);
   --sidebar-primary-foreground: oklch(0.15 0.02 0);
-  --sidebar-accent: oklch(0.7 0.12 180);
-  --sidebar-accent-foreground: oklch(0.15 0.02 0);
+  --sidebar-accent: oklch(0.38 0.08 125);
+  --sidebar-accent-foreground: oklch(0.95 0.02 125);
   --sidebar-border: oklch(0.3 0.02 0);
   --sidebar-ring: oklch(0.7 0.12 258);
 }
@@ -158,16 +158,21 @@
 
   .page-title {
     color: var(--foreground);
-    font-size: 1.5rem;
-    font-weight: 600;
-    letter-spacing: -0.025em;
-    line-height: 2rem;
+    font-size: 1.625rem;
+    font-weight: 650;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
   }
 
   .page-description {
     color: var(--muted-foreground);
     font-size: 0.875rem;
     line-height: 1.25rem;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 70%, white);
+    color: var(--foreground);
   }
   
   /* Ensure lists display properly in prose content */

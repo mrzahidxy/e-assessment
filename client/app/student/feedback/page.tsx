@@ -1,54 +1,106 @@
 "use client";
 
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageShell } from "@/components/ui/page-shell";
-import { Button } from "@/components/ui/button";
+import { StatePanel } from "@/components/ui/state-panel";
+import { Badge } from "@/components/ui/badge";
+import { useSubmissions } from "@/hooks/queries/useSubmissions";
+import { StudentHeader } from "@/components/student-header";
+
+const formatDate = (value: string | null) => {
+  if (!value) return "Date unavailable";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "Date unavailable"
+    : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+};
 
 export default function StudentFeedbackPage() {
+  const reviewedQuery = useSubmissions(undefined, "REVIEWED", true);
+  const submittedQuery = useSubmissions(undefined, "SUBMITTED", true);
+  const isLoading = reviewedQuery.isLoading || submittedQuery.isLoading;
+  const isError = reviewedQuery.isError || submittedQuery.isError;
+  const feedbackItems = [
+    ...(reviewedQuery.data ?? []),
+    ...(submittedQuery.data ?? []),
+  ].sort(
+    (left, right) =>
+      new Date(right.submittedAt ?? right.createdAt).getTime() -
+      new Date(left.submittedAt ?? left.createdAt).getTime()
+  );
+
+  const retry = () => {
+    void reviewedQuery.refetch();
+    void submittedQuery.refetch();
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <StudentHeader />
       <PageShell width="narrow" className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="page-title">Assessment feedback</h1>
+            <p className="text-sm text-muted-foreground">
+              Review marks and comments, or check submissions still awaiting review.
+            </p>
           </div>
-          <Button variant="outline" asChild>
-            <Link href="/student/assessments">Back to dashboard</Link>
-          </Button>
         </div>
 
-        <Card className="p-12 text-center space-y-6 bg-linear-to-br from-primary/5 to-primary/5">
-          <div className="flex justify-center">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-              <svg
-                className="w-10 h-10 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
+        {isLoading && (
+          <StatePanel kind="loading" title="Loading your submissions" />
+        )}
+        {isError && (
+          <StatePanel
+            kind="error"
+            title="Couldn’t load feedback"
+            description="Please try again."
+            action={
+              <Button variant="outline" size="sm" onClick={retry}>
+                Try again
+              </Button>
+            }
+          />
+        )}
+        {!isLoading && !isError && feedbackItems.length === 0 && (
+          <StatePanel
+            kind="empty"
+            title="No submitted assessments yet"
+            description="Once you submit an assessment, its review status and feedback will appear here."
+          />
+        )}
+        {!isLoading && !isError && feedbackItems.length > 0 && (
+          <div className="space-y-3">
+            {feedbackItems.map((submission) => {
+              const isReviewed = submission.status === "REVIEWED";
+              return (
+                <Card
+                  key={submission.id}
+                  className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5"
+                >
+                  <div className="min-w-0 space-y-2">
+                    <h2 className="truncate font-semibold text-foreground">
+                      {submission.paper.title}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <Badge variant={isReviewed ? "success" : "warning"}>
+                        {isReviewed ? "Reviewed" : "Awaiting review"}
+                      </Badge>
+                      <span>Submitted {formatDate(submission.submittedAt)}</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/student/feedback/${submission.id}`}>
+                      {isReviewed ? "View feedback" : "View submission"}
+                    </Link>
+                  </Button>
+                </Card>
+              );
+            })}
           </div>
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-foreground">Coming Soon</h2>
-            <p className="text-lg text-muted-foreground max-w-md mx-auto">
-              Open feedback from a submitted assessment to see its grading details.
-            </p>
-          </div>
-          <div className="pt-4">
-            <p className="text-sm text-muted-foreground">
-              Feedback will appear here after your instructor reviews a submission.
-            </p>
-          </div>
-        </Card>
-
+        )}
       </PageShell>
     </div>
   );

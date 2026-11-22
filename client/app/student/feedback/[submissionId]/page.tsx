@@ -1,10 +1,10 @@
 "use client"
 
 import { use } from "react"
-import Link from "next/link"
 import he from "he"
 import { Card } from "@/components/ui/card"
 import { PageShell } from "@/components/ui/page-shell"
+import { StudentHeader } from "@/components/student-header"
 import { Button } from "@/components/ui/button"
 import { StatePanel } from "@/components/ui/state-panel"
 import { useSubmissionDetail } from "@/hooks/queries/useSubmissionDetail"
@@ -33,15 +33,13 @@ export default function StudentFeedbackPage({
 
   return (
     <div className="min-h-screen bg-background">
+      <StudentHeader />
       <PageShell width="narrow" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">Feedback for</p>
             <h1 className="page-title">{title}</h1>
           </div>
-          <Button variant="outline" asChild>
-            <Link href="/student/assessments">Back to dashboard</Link>
-          </Button>
         </div>
 
         {!submissionId ? (

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Settings, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth-store';
 
 interface AdminHeaderProps {
@@ -25,22 +25,17 @@ export function AdminHeader({
   };
 
   return (
-    <header className="border-b border-border bg-card">
-      <div className="max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
-              A
-            </div>
-            <h1 className="page-title">{title}</h1>
+    <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+        <div className={`flex items-center justify-between ${activeTab !== undefined ? "mb-4" : ""}`}>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium text-muted-foreground">{user?.name || 'Admin'}</p>
+            {title && <h1 className="page-title">{title}</h1>}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {user?.name || 'Admin'}
-            </span>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Button variant="outline" size="sm" onClick={handleLogout} aria-label="Log out">
               <LogOut className="w-4 h-4 mr-2" />
-              Log out
+              <span className="hidden sm:inline">Log out</span>
             </Button>
           </div>
         </div>
@@ -54,8 +49,8 @@ export function AdminHeader({
                   onClick={() => onTabChange?.(tab)}
                   className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
                     activeTab === tab
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   {tab}
