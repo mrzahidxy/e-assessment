@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 
 type GradePayload = {
   subQuestionId: string;
-  assignedMarks: number;
+  assignedMarks: number | null;
   comment?: string;
 };
 

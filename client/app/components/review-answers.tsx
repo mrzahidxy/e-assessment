@@ -3,6 +3,7 @@
 import he from "he";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { StatePanel } from "@/components/ui/state-panel";
 import { GraphAnswerEditor } from "@/components/exam/graph-answer";
 import { DrawingAnswerEditor } from "@/components/exam/drawing-answer";
 import { ImageCompositionAnswerEditor } from "@/components/exam/image-composition-answer";
@@ -13,8 +14,8 @@ import type { SubmissionDetail } from "@/types";
 
 type ReviewAnswersProps = {
   submission?: SubmissionDetail | null;
-  gradeValues?: Record<string, number>;
-  onGradeChange?: (subQuestionId: string, value: number) => void;
+  gradeValues?: Record<string, number | null>;
+  onGradeChange?: (subQuestionId: string, value: number | null) => void;
   commentValues?: Record<string, string>;
   onCommentChange?: (subQuestionId: string, value: string) => void;
   isSaving?: boolean;
@@ -56,9 +57,7 @@ export default function ReviewAnswers({
 }: ReviewAnswersProps) {
   if (!submission) {
     return (
-      <Card className="p-4 text-sm text-muted-foreground">
-        No submission selected.
-      </Card>
+      <StatePanel kind="empty" title="No submission selected" compact />
     );
   }
 
@@ -67,9 +66,7 @@ export default function ReviewAnswers({
   return (
     <div className="space-y-3">
       {questions.length === 0 ? (
-        <Card className="p-3 text-xs text-muted-foreground">
-          No questions found for this submission.
-        </Card>
+        <StatePanel kind="empty" title="No questions in this submission" compact />
       ) : (
         questions.map((question, questionIndex) => (
           <Card key={question.id} className="p-3 space-y-2">
@@ -99,8 +96,10 @@ export default function ReviewAnswers({
                 const gradeKey = subQuestionId;
                 const gradeFromInput = gradeValues[gradeKey];
                 const commentFromInput = commentValues[gradeKey];
-                const grade =
-                  gradeFromInput ?? subQuestion.answer?.marks?.assigned ?? 0;
+                const savedGrade = subQuestion.answer?.marks?.assigned;
+                const grade = Object.hasOwn(gradeValues, gradeKey)
+                  ? gradeFromInput ?? ""
+                  : savedGrade ?? "";
                 const comment =
                   commentFromInput ??
                   subQuestion.answer?.comment ??
@@ -127,7 +126,7 @@ export default function ReviewAnswers({
                       dangerouslySetInnerHTML={{ __html: questionHtml }}
                     />
                     <div className="text-[11px] text-muted-foreground">
-                      Assigned: {grade}/{maxScore}
+                      Assigned: {grade === "" ? "Ungraded" : `${grade}/${maxScore}`}
                     </div>
                     <div className="preview-content review-answers-content text-sm bg-muted/40 rounded p-2 min-h-10 text-foreground leading-snug">
                       {isGraph ? (
@@ -182,16 +181,14 @@ export default function ReviewAnswers({
                         max={maxScore || undefined}
                         value={grade}
                         onChange={(e) => {
-                          const value = Number(e.target.value);
+                          const value = e.target.value === "" ? null : Number(e.target.value);
                           const targetKey = gradeKey;
-                          if (targetKey) {
-                            onGradeChange?.(
-                              targetKey,
-                              Number.isNaN(value) ? 0 : value
-                            );
+                          if (targetKey && (value === null || !Number.isNaN(value))) {
+                            onGradeChange?.(targetKey, value);
                           }
                         }}
                         disabled={!onGradeChange}
+                        placeholder="0"
                         className="w-16 px-2 py-1 border border-border rounded text-xs"
                       />
                     </div>

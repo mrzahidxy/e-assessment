@@ -103,7 +103,7 @@ export interface Grade {
   id: string;
   submissionId: string;
   subQuestionId: string;
-  assignedMarks: number;
+  assignedMarks: number | null;
   comment?: string | null;
   gradedById?: string | null;
   createdAt: string;

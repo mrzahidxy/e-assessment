@@ -526,7 +526,7 @@ export const submissionService = {
     const gradesBySubQuestionId = new Map<
       string,
       {
-        assignedMarks: number;
+        assignedMarks: number | null;
         comment: string | null;
       }
     >(
@@ -630,7 +630,7 @@ export const submissionService = {
       gradedSubQuestionIds.add(grade.subQuestionId);
 
       const maxMarks = marksById.get(grade.subQuestionId) ?? 0;
-      if (grade.assignedMarks > maxMarks) {
+      if (grade.assignedMarks !== null && grade.assignedMarks > maxMarks) {
         throw new HttpError(400, 'Assigned marks exceed the maximum for a sub-question');
       }
     }
@@ -639,8 +639,36 @@ export const submissionService = {
       throw new HttpError(400, 'Every sub-question must be graded before the submission is reviewed');
     }
 
+    const hasUnassignedMarks = input.grades.some((grade) => grade.assignedMarks === null);
+
+    // Grading runs several sequential writes, and Neon round-trip latency can
+    // exceed Prisma's default 5-second interactive-transaction timeout.
     await prisma.$transaction(async (tx) => {
       for (const grade of input.grades) {
+        if (grade.assignedMarks === null) {
+          await tx.grade.upsert({
+            where: {
+              submissionId_subQuestionId: {
+                submissionId,
+                subQuestionId: grade.subQuestionId,
+              },
+            },
+            update: {
+              assignedMarks: null,
+              gradedBy: { connect: { id: actor.id } },
+              ...(grade.comment !== undefined ? { comment: grade.comment } : {}),
+            },
+            create: {
+              submission: { connect: { id: submissionId } },
+              subQuestion: { connect: { id: grade.subQuestionId } },
+              assignedMarks: null,
+              gradedBy: { connect: { id: actor.id } },
+              comment: grade.comment ?? null,
+            },
+          });
+          continue;
+        }
+
         const updateData: Prisma.GradeUpdateInput = {
           assignedMarks: grade.assignedMarks,
           gradedBy: {
@@ -687,9 +715,11 @@ export const submissionService = {
       await tx.submission.update({
         where: { id: submissionId },
         data: {
-          status: SubmissionStatus.REVIEWED,
+          status: hasUnassignedMarks ? SubmissionStatus.SUBMITTED : SubmissionStatus.REVIEWED,
         },
       });
+    }, {
+      timeout: 30_000,
     });
 
     return prisma.submission.findUniqueOrThrow({

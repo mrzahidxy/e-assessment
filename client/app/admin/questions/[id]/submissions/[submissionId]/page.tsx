@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AdminHeader } from "@/components/admin-header";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { StatePanel } from "@/components/ui/state-panel";
+import { PageShell } from "@/components/ui/page-shell";
 import ReviewAnswers from "@/components/review-answers";
 import { useSubmissionDetail } from "@/hooks/queries/useSubmissionDetail";
 import { useGradeSubmission } from "@/hooks/queries/useGradeSubmission";
@@ -25,17 +28,15 @@ export default function AdminSubmissionPage({
     data: submission,
     isLoading,
     isError,
+    refetch,
   } = useSubmissionDetail(submissionId);
-  const [grades, setGrades] = useState<Record<string, number>>({});
+  const [grades, setGrades] = useState<Record<string, number | null>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
 
-  const paperTitle = submission?.paper?.title ?? "Question Paper";
+  const paperTitle = submission?.paper?.title ?? "Submission details";
   const statusLabel =
     submission?.status === "REVIEWED" ? "Reviewed" : "Pending review";
-  const statusTone =
-    submission?.status === "REVIEWED"
-      ? "bg-success/15 text-success"
-      : "bg-yellow-500/15 text-yellow-700";
+  const statusVariant = submission?.status === "REVIEWED" ? "success" : "warning";
   const submittedAt = submission?.submittedAt ?? submission?.createdAt ?? null;
   const formatDate = (value?: string | null) => {
     if (!value) return "—";
@@ -48,7 +49,7 @@ export default function AdminSubmissionPage({
     if (!submission || gradeSubmission.isPending) return;
     const gradeEntries = Object.entries(grades);
     const commentEntries = Object.entries(comments);
-    if (gradeEntries.length === 0 && commentEntries.length === 0) {
+    if (Object.keys(grades).length === 0 && commentEntries.length === 0) {
       toast({
         title: "No feedback to submit",
         description: "Please enter marks or comments before submitting.",
@@ -92,8 +93,9 @@ export default function AdminSubmissionPage({
       const comment = commentValues.get(subQuestion.id)?.trim();
       return {
         subQuestionId: subQuestion.id,
-        assignedMarks:
-          gradeValues.get(subQuestion.id) ?? existingMarks.get(subQuestion.id)!,
+        assignedMarks: gradeValues.has(subQuestion.id)
+          ? gradeValues.get(subQuestion.id)!
+          : existingMarks.get(subQuestion.id)!,
         ...(comment ? { comment } : {}),
       };
     });
@@ -105,8 +107,12 @@ export default function AdminSubmissionPage({
         paperId: id,
       });
       toast({
-        title: "Grades saved",
-        description: "Submission has been marked as reviewed.",
+        title: gradeEntries.some(([, grade]) => grade === null)
+          ? "Grades updated"
+          : "Grades saved",
+        description: gradeEntries.some(([, grade]) => grade === null)
+          ? "The cleared marks are ungraded. Add marks to every question before marking this submission reviewed."
+          : "Submission has been marked as reviewed.",
         variant: "success",
       });
       router.push(`/admin/questions/${id}`);
@@ -119,7 +125,7 @@ export default function AdminSubmissionPage({
     <div className="min-h-screen bg-background">
       <AdminHeader title="Question Paper" />
 
-      <main className="max-w-6xl mx-auto px-3 py-5 space-y-4">
+      <PageShell className="space-y-4">
         <Card className="p-3 shadow-none border-border">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-2">
@@ -137,43 +143,51 @@ export default function AdminSubmissionPage({
                 <h1 className="text-lg font-semibold text-foreground leading-tight">
                   {paperTitle}
                 </h1>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                  <span>{submission?.student?.name ?? "Unknown Student"}</span>
-                  <span
-                    className="h-1 w-1 rounded-full bg-muted-foreground/60"
-                    aria-hidden
-                  />
-                  <span>
-                    {submission?.student?.schoolCode ?? "Unknown Student"}
-                  </span>
-                  <span
-                    className="h-1 w-1 rounded-full bg-muted-foreground/60"
-                    aria-hidden
-                  />
-                  <span>Submitted {formatDate(submittedAt)}</span>
-                </div>
+                {submission && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <span>{submission.student?.name ?? "Student"}</span>
+                    <span
+                      className="h-1 w-1 rounded-full bg-muted-foreground/60"
+                      aria-hidden
+                    />
+                    <span>{submission.student?.schoolCode ?? "—"}</span>
+                    <span
+                      className="h-1 w-1 rounded-full bg-muted-foreground/60"
+                      aria-hidden
+                    />
+                    <span>Submitted {formatDate(submittedAt)}</span>
+                  </div>
+                )}
               </div>
             </div>
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] ${statusTone}`}
-            >
-              {statusLabel}
-            </span>
+            {submission && (
+              <Badge variant={statusVariant} className="text-[11px]">
+                {statusLabel}
+              </Badge>
+            )}
           </div>
         </Card>
 
-        {isLoading && (
-          <Card className="p-2.5 text-xs text-muted-foreground shadow-none border-border">
-            Loading submission details...
-          </Card>
-        )}
-        {isError && (
-          <Card className="p-2.5 text-xs text-destructive shadow-none border-border">
-            Failed to load submission details.
-          </Card>
-        )}
-
-        {submission ? (
+        {isLoading ? (
+          <StatePanel kind="loading" title="Loading submission details" compact />
+        ) : isError ? (
+          <StatePanel
+            kind="error"
+            title="Couldn’t load submission"
+            description="The submission may no longer be available. Return to the list or try again."
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => void refetch()}>
+                  Try again
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/admin/questions/${id}`}>Back to submissions</Link>
+                </Button>
+              </div>
+            }
+            compact
+          />
+        ) : submission ? (
           <>
             <ReviewAnswers
               submission={submission}
@@ -207,13 +221,19 @@ export default function AdminSubmissionPage({
             </div>
           </>
         ) : (
-          !isLoading && (
-            <Card className="p-2.5 text-xs text-muted-foreground shadow-none border-border">
-              Submission not found.
-            </Card>
-          )
+          <StatePanel
+            kind="empty"
+            title="Submission not found"
+            description="This submission may have been removed. Return to the list to choose another submission."
+            action={
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/admin/questions/${id}`}>Back to submissions</Link>
+              </Button>
+            }
+            compact
+          />
         )}
-      </main>
+      </PageShell>
     </div>
   );
 }

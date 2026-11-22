@@ -129,7 +129,7 @@ model Grade {
   id            String      @id @default(uuid()) @db.Uuid
   submissionId  String      @db.Uuid
   subQuestionId String      @db.Uuid
-  assignedMarks Int
+  assignedMarks Int?
   gradedById    String?     @db.Uuid
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

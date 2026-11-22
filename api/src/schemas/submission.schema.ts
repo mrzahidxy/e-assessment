@@ -8,7 +8,7 @@ const answerInputSchema = z.object({
 
 const gradeInputSchema = z.object({
   subQuestionId: z.string().uuid(),
-  assignedMarks: z.number().int().min(0),
+  assignedMarks: z.number().int().min(0).nullable(),
   comment: z.string().trim().min(1).optional(),
 });
 

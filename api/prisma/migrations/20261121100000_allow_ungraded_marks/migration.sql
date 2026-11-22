@@ -1,0 +1,2 @@
+ALTER TABLE "Grade"
+ALTER COLUMN "assignedMarks" DROP NOT NULL;
