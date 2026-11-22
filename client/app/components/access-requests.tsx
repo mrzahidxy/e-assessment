@@ -2,6 +2,8 @@
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { StatePanel } from "@/components/ui/state-panel"
 import { Check, X } from "lucide-react"
 import { useAccessRequestMutations, useAccessRequests } from "@/hooks/queries/useAccessRequests"
 
@@ -10,7 +12,7 @@ interface AccessRequestsProps {
 }
 
 export default function AccessRequests({ paperId }: AccessRequestsProps) {
-  const { data, isLoading, isError, error } = useAccessRequests(paperId);
+  const { data, isLoading, isError, refetch } = useAccessRequests(paperId);
   const { update } = useAccessRequestMutations();
   const requests = Array.isArray(data) ? data : [];
 
@@ -19,25 +21,31 @@ export default function AccessRequests({ paperId }: AccessRequestsProps) {
       <div className="border-b border-border px-3 py-2 text-xs font-semibold text-foreground">
         Access Requests
       </div>
-      {(isLoading || isError || requests.length === 0) && (
-        <div className="p-3 text-xs">
-          {isLoading && <p className="text-muted-foreground">Loading access requests...</p>}
-          {isError && (
-            <p className="text-destructive">
-              Failed to load access requests: {error instanceof Error ? error.message : "Unknown error"}
-            </p>
-          )}
-          {!isLoading && !isError && requests.length === 0 && (
-            <p className="text-muted-foreground">No access requests yet.</p>
-          )}
-        </div>
+      {isLoading && (
+        <StatePanel kind="loading" title="Loading access requests" compact />
+      )}
+      {isError && (
+        <StatePanel
+          kind="error"
+          title="Couldn’t load access requests"
+          description="Please try again."
+          action={
+            <Button variant="outline" size="sm" onClick={() => void refetch()}>
+              Try again
+            </Button>
+          }
+          compact
+        />
+      )}
+      {!isLoading && !isError && requests.length === 0 && (
+        <StatePanel kind="empty" title="No access requests yet" compact />
       )}
       {!isLoading && !isError && requests.length > 0 && (
         <div className="divide-y divide-border/70">
           {requests.map((request) => (
             <div
               key={request.id}
-              className="p-2.5 flex items-start justify-between gap-3 text-xs"
+              className="flex flex-col items-start justify-between gap-3 p-3 text-xs sm:flex-row sm:p-2.5"
             >
               <div className="flex-1 space-y-0.5">
                 <p className="font-semibold text-foreground text-sm leading-tight">
@@ -49,23 +57,18 @@ export default function AccessRequests({ paperId }: AccessRequestsProps) {
                   Requested: {new Date(request.createdAt).toLocaleDateString()}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium ${
-                    request.status === 'PENDING'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : request.status === 'APPROVED'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
+              <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
+                <Badge
+                  variant={request.status === 'PENDING' ? 'warning' : request.status === 'APPROVED' ? 'success' : 'danger'}
+                  className="text-[11px]"
                 >
                   {request.status}
-                </span>
+                </Badge>
                 {request.status === 'PENDING' && (
                   <div className="flex gap-1">
                     <Button
                       size="sm"
-                      className="h-7 px-2 text-[12px] gap-1"
+                      className="gap-1"
                       onClick={() => update.mutate({ id: request.id, status: 'APPROVED' })}
                       disabled={update.isPending}
                     >
@@ -74,8 +77,8 @@ export default function AccessRequests({ paperId }: AccessRequestsProps) {
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[12px] gap-1"
+                      variant="destructive"
+                      className="gap-1"
                       onClick={() => update.mutate({ id: request.id, status: 'REJECTED' })}
                       disabled={update.isPending}
                     >

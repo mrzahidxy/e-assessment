@@ -106,7 +106,7 @@ export function RichTextEditor({
   };
 
   return (
-    <div className="relative border border-slate-300 rounded bg-white overflow-hidden">
+    <div className="relative border border-border rounded bg-white overflow-hidden">
       <Editor
         ref={editorRef}
         licenseKey="gpl"

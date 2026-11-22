@@ -25,7 +25,7 @@ const RichTextEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="border border-slate-300 rounded bg-white h-[300px] flex items-center justify-center text-slate-500">
+      <div className="border border-border rounded bg-white h-[300px] flex items-center justify-center text-muted-foreground">
         Loading editor...
       </div>
     ),
@@ -639,7 +639,6 @@ export default function QuestionBuilderPage({
 
   const handleSaveDraft = () => {
     setStatus('draft-saved');
-    console.log('Saving draft exam paper', exam);
   };
 
   const getInteractiveTableValidationErrors = () =>
@@ -768,10 +767,10 @@ export default function QuestionBuilderPage({
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-slate-200 shadow-md">
+    <div className="flex flex-col h-screen bg-background">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-background border-b border-border shadow-md">
         {/* Top row - Navigation and Title */}
-        <div className="px-4 py-3 border-b border-slate-100">
+        <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/admin/questions">
@@ -781,8 +780,8 @@ export default function QuestionBuilderPage({
               </Link>
               <div className="flex items-center gap-3">
                 <div>
-                  <p className="text-xs text-slate-500">Question Builder</p>
-                  <h1 className="text-lg font-semibold text-slate-900">
+                  <p className="text-xs text-muted-foreground">Question Builder</p>
+                  <h1 className="text-lg font-semibold text-foreground">
                     {paperMeta?.title ||
                       (paperIdValue
                         ? `Paper ${paperIdValue}`
@@ -790,7 +789,7 @@ export default function QuestionBuilderPage({
                   </h1>
                 </div>
                 {isLoadingPaper && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Loading...
                   </div>
@@ -859,29 +858,29 @@ export default function QuestionBuilderPage({
             <div className="flex items-center gap-4">
               {paperMeta && (
                 <div className="flex items-center gap-3 text-xs">
-                  <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                  <span className="px-2 py-1 rounded bg-muted/50 text-foreground border border-border">
                     {paperMeta.status || '—'}
                   </span>
                   {paperMeta.durationMinutes !== undefined && (
-                    <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                    <span className="px-2 py-1 rounded bg-muted/50 text-foreground border border-border">
                       {paperMeta.durationMinutes} min
                     </span>
                   )}
                   {paperMeta.startDate && (
-                    <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                    <span className="px-2 py-1 rounded bg-muted/50 text-foreground border border-border">
                       Starts{' '}
                       {new Date(paperMeta.startDate).toLocaleDateString()}
                     </span>
                   )}
                   {paperMeta.endDate && (
-                    <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                    <span className="px-2 py-1 rounded bg-muted/50 text-foreground border border-border">
                       Ends {new Date(paperMeta.endDate).toLocaleDateString()}
                     </span>
                   )}
                 </div>
               )}
               {status !== 'idle' && (
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted-foreground">
                   {status === 'draft-saved'
                     ? 'Draft saved locally'
                     : 'Questions submitted to API'}
@@ -893,7 +892,7 @@ export default function QuestionBuilderPage({
               <div className="flex items-center gap-2">
                 <Label
                   htmlFor="paper-id"
-                  className="text-xs text-slate-600 whitespace-nowrap"
+                  className="text-xs text-muted-foreground whitespace-nowrap"
                 >
                   Paper ID:
                 </Label>
@@ -911,12 +910,12 @@ export default function QuestionBuilderPage({
       </header>
       <div className="pt-32 flex-1 flex overflow-hidden">
         {/* Left Sidebar - Questions Navigator */}
-        <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-slate-200">
-            <h2 className="text-base font-semibold text-slate-900">
+        <div className="w-80 bg-muted/30 border-r border-border flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <h2 className="text-base font-semibold text-foreground">
               Questions
             </h2>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {exam.questions.length} question
               {exam.questions.length !== 1 ? 's' : ''}
             </p>
@@ -927,7 +926,7 @@ export default function QuestionBuilderPage({
               {exam.questions.map((question) => (
                 <div
                   key={question.id}
-                  className="bg-white rounded-lg border border-slate-200 shadow-sm"
+                  className="bg-card rounded-lg border border-border shadow-sm"
                 >
                   <div className="flex items-center group">
                     <button
@@ -939,20 +938,20 @@ export default function QuestionBuilderPage({
                       }}
                       className={`flex-1 text-left p-3 rounded-l-lg text-sm font-medium transition-colors min-w-0 flex items-center gap-2 ${
                         currentQuestionId === question.id
-                          ? 'bg-blue-50 text-blue-900'
-                          : 'text-slate-700 hover:bg-slate-50'
+                          ? 'bg-primary/5 text-primary'
+                          : 'text-foreground hover:bg-muted/30'
                       }`}
                     >
                       {currentQuestionId === question.id ? (
-                        <ChevronDown className="w-4 h-4 shrink-0 text-blue-600" />
+                        <ChevronDown className="w-4 h-4 shrink-0 text-primary" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 shrink-0 text-slate-400" />
+                        <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="truncate font-semibold">
                           Question {question.question_number}
                         </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           {question.sub_questions.length} sub-question
                           {question.sub_questions.length !== 1
                             ? 's'
@@ -964,7 +963,7 @@ export default function QuestionBuilderPage({
                     {exam.questions.length > 1 && (
                       <button
                         onClick={() => deleteQuestion(question.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-r-lg transition-all shrink-0"
+                        className="p-2 text-destructive hover:bg-destructive/10 rounded-r-lg transition-all shrink-0"
                         title="Delete question"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -973,7 +972,7 @@ export default function QuestionBuilderPage({
                   </div>
 
                   {currentQuestionId === question.id && (
-                    <div className="border-t border-slate-200 bg-slate-50 p-2">
+                    <div className="border-t border-border bg-muted/30 p-2">
                       <div className="space-y-1">
                         {question.sub_questions.map((sq) => (
                           <button
@@ -983,15 +982,15 @@ export default function QuestionBuilderPage({
                             }
                             className={`w-full text-left px-3 py-2 rounded text-xs transition-colors ${
                               currentSubQuestionId === sq.sub_question_id
-                                ? 'bg-blue-100 text-blue-800 font-medium border border-blue-300 shadow-sm'
-                                : 'text-slate-600 hover:bg-white border border-transparent'
+                                ? 'bg-primary/10 text-primary font-medium border border-primary/30 shadow-sm'
+                                : 'text-muted-foreground hover:bg-white border border-transparent'
                             }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="font-medium">
                                 Sub-question ({sq.sub_question_id})
                               </span>
-                              <span className="text-slate-500 text-[10px] bg-slate-200 px-1.5 py-0.5 rounded">
+                              <span className="text-muted-foreground text-[10px] bg-muted px-1.5 py-0.5 rounded">
                                 {sq.marks} (m)
                               </span>
                             </div>
@@ -1005,10 +1004,10 @@ export default function QuestionBuilderPage({
             </div>
           </div>
 
-          <div className="p-4 border-t border-slate-200">
+          <div className="p-4 border-t border-border">
             <Button
               onClick={handleAddQuestionClick}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-sm h-10"
+              className="w-full bg-primary hover:bg-primary/90 text-sm h-10"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Question
@@ -1024,7 +1023,7 @@ export default function QuestionBuilderPage({
               <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
                 <div className="space-y-6">
                   <div>
-                    <Label className="text-sm font-semibold text-slate-700">
+                    <Label className="text-sm font-semibold text-foreground">
                       Question {currentQuestion.question_number} - Description
                       (Context/Passage)
                     </Label>
@@ -1040,7 +1039,7 @@ export default function QuestionBuilderPage({
                   </div>
 
                   <div>
-                    <Label className="text-sm font-semibold text-slate-700">
+                    <Label className="text-sm font-semibold text-foreground">
                       Total Marks
                     </Label>
                     <Input
@@ -1059,13 +1058,13 @@ export default function QuestionBuilderPage({
                         updateQuestion(currentQuestion.id, { marks: next });
                       }}
                       min="0"
-                      className="mt-1 text-sm max-w-xs focus:shadow-none! focus:ring-1! focus:ring-blue-500! focus:border-blue-500! focus:outline-none! border-slate-300"
+                      className="mt-1 text-sm max-w-xs focus:shadow-none! focus:ring-1! focus:ring-primary! focus:border-primary! focus:outline-none! border-border"
                     />
                   </div>
 
-                  <div className="pt-6 border-t border-slate-200">
+                  <div className="pt-6 border-t border-border">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-slate-900">
+                      <h3 className="text-lg font-semibold text-foreground">
                         Sub-Question ({currentSubQuestion.sub_question_id})
                       </h3>
                       {currentQuestion.sub_questions.length > 1 && (
@@ -1079,7 +1078,7 @@ export default function QuestionBuilderPage({
                           }
                           variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:bg-red-50"
+                          className="text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1089,7 +1088,7 @@ export default function QuestionBuilderPage({
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-sm font-semibold text-slate-700">
+                          <Label className="text-sm font-semibold text-foreground">
                             Marks
                           </Label>
                           <Input
@@ -1116,12 +1115,12 @@ export default function QuestionBuilderPage({
                               );
                             }}
                             min="0"
-                            className="mt-1 text-sm focus:ring-2! focus:ring-blue-500! focus:border-blue-500! focus:outline-none! border-slate-300"
+                            className="mt-1 text-sm focus:ring-2! focus:ring-primary! focus:border-primary! focus:outline-none! border-border"
                           />
                         </div>
 
                         <div>
-                          <Label className="text-sm font-semibold text-slate-700">
+                          <Label className="text-sm font-semibold text-foreground">
                             Question Type
                           </Label>
                           <Select
@@ -1186,7 +1185,7 @@ export default function QuestionBuilderPage({
                               }
                             }}
                           >
-                            <SelectTrigger className="mt-1 text-sm w-full border-2 border-slate-300 hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
+                            <SelectTrigger className="mt-1 w-full">
                               <SelectValue>{currentSubQuestionTypeLabel}</SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -1205,7 +1204,7 @@ export default function QuestionBuilderPage({
                       </div>
 
                       <div>
-                        <Label className="text-sm font-semibold text-slate-700">
+                        <Label className="text-sm font-semibold text-foreground">
                           Question Text
                         </Label>
                         <RichTextEditor
@@ -1225,7 +1224,7 @@ export default function QuestionBuilderPage({
                       {currentSubQuestion.type === 'MCQ' && (
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <Label className="text-sm font-semibold text-slate-700">
+                            <Label className="text-sm font-semibold text-foreground">
                               MCQ Options
                             </Label>
                             <Button
@@ -1248,11 +1247,11 @@ export default function QuestionBuilderPage({
                             {currentSubQuestion.options.map((option, index) => (
                               <div
                                 key={index}
-                                className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                                className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border"
                               >
                                 <div className="flex-1 grid grid-cols-2 gap-3">
                                   <div>
-                                    <Label className="text-xs text-slate-600">
+                                    <Label className="text-xs text-muted-foreground">
                                       Option Label
                                     </Label>
                                     <Input
@@ -1271,7 +1270,7 @@ export default function QuestionBuilderPage({
                                     />
                                   </div>
                                   <div>
-                                    <Label className="text-xs text-slate-600">
+                                    <Label className="text-xs text-muted-foreground">
                                       Option Value
                                     </Label>
                                     <Input
@@ -1301,7 +1300,7 @@ export default function QuestionBuilderPage({
                                     }
                                     variant="ghost"
                                     size="sm"
-                                    className="text-red-600 hover:bg-red-50 shrink-0"
+                                    className="text-destructive hover:bg-destructive/10 shrink-0"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -1310,7 +1309,7 @@ export default function QuestionBuilderPage({
                             ))}
 
                             {currentSubQuestion.options.length === 0 && (
-                              <div className="text-center py-4 text-slate-500 text-sm">
+                              <div className="text-center py-4 text-muted-foreground text-sm">
                                 No options added yet. Click "Add Option" to
                                 start.
                               </div>
@@ -1320,28 +1319,28 @@ export default function QuestionBuilderPage({
                       )}
 
                       {currentSubQuestion.type === 'GRAPH' && (
-                        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                           <div>
-                            <Label className="text-sm font-semibold text-slate-700">
+                            <Label className="text-sm font-semibold text-foreground">
                               Graph Plotting Answer
                             </Label>
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               Students can plot points and draw a line on the exam graph grid.
                             </p>
                           </div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             Use the student view to place plotted answers. This editor stores the graph as structured answer data.
                           </p>
                         </div>
                       )}
 
                       {currentSubQuestion.type === 'TABLE' && (
-                        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                           <div>
-                            <Label className="text-sm font-semibold text-slate-700">
+                            <Label className="text-sm font-semibold text-foreground">
                               Table Answer
                             </Label>
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               This question type uses a fixed editable table in the student view.
                             </p>
                           </div>
@@ -1367,19 +1366,19 @@ export default function QuestionBuilderPage({
                       )}
 
                       {currentSubQuestion.type === 'CIRCUIT' && (
-                        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                           <div>
-                            <Label className="text-sm font-semibold text-slate-700">
+                            <Label className="text-sm font-semibold text-foreground">
                               Circuit Board Designer
                             </Label>
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               Add battery, switch, and bulb components. Drag the pieces to position them on the board.
                             </p>
                           </div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             The template is stored with the question and rendered for students using the same layout.
                           </p>
-                          <div className="rounded border border-slate-200 bg-white p-3">
+                          <div className="rounded border border-border bg-card p-3">
                             <CircuitBoardDesigner
                               template={currentSubQuestion.circuitTemplate ?? DEFAULT_CIRCUIT_TEMPLATE}
                               onChange={(nextTemplate) =>
@@ -1393,35 +1392,35 @@ export default function QuestionBuilderPage({
                       )}
 
                       {currentSubQuestion.type === 'DRAWING' && (
-                        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                           <div>
-                            <Label className="text-sm font-semibold text-slate-700">
+                            <Label className="text-sm font-semibold text-foreground">
                               Drawing Answer
                             </Label>
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               Students can draw freehand, lines, rectangles, circles, and arrows. The answer is stored as structured JSON in answerText.
                             </p>
                           </div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             No extra board configuration is needed here. Use the student preview to verify the editor flow.
                           </p>
                         </div>
                       )}
 
                       {currentSubQuestion.type === 'IMAGE_COMPOSITION' && (
-                        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                           <div>
-                            <Label className="text-sm font-semibold text-slate-700">
+                            <Label className="text-sm font-semibold text-foreground">
                               Image Composition
                             </Label>
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               Students can drag, drop, resize, and layer multiple images on a canvas. The answer is stored as structured JSON in answerText.
                             </p>
                           </div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             This is useful for collage-style tasks, image ordering, or visual assembly questions.
                           </p>
-                          <div className="rounded border border-slate-200 bg-white p-3">
+                          <div className="rounded border border-border bg-card p-3">
                             <ImageCompositionBoardDesigner
                               template={
                                 currentSubQuestion.imageCompositionTemplate ??
@@ -1460,10 +1459,10 @@ export default function QuestionBuilderPage({
               </div>
 
               {/* Preview Panel */}
-              <div className="flex-1 bg-white border border-slate-200 rounded-lg p-6 overflow-y-auto">
+              <div className="flex-1 bg-card border border-border rounded-lg p-6 overflow-y-auto">
                 <div className="space-y-4 max-w-2xl">
-                  <div className="pb-3 border-b-2 border-blue-600">
-                    <h2 className="text-xl font-bold text-slate-900">
+                  <div className="pb-3 border-b-2 border-primary">
+                    <h2 className="text-xl font-bold text-foreground">
                       {exam.title}
                     </h2>
                   </div>
@@ -1471,7 +1470,7 @@ export default function QuestionBuilderPage({
                   {/* Question Description */}
                   {currentQuestion.description && (
                     <div
-                      className="preview-content p-3 bg-slate-50 rounded border border-slate-300 text-sm text-slate-700 prose prose-sm max-w-none prose-ol:list-decimal prose-ul:list-disc prose-li:ml-4"
+                      className="preview-content p-3 bg-muted/30 rounded border border-border text-sm text-foreground prose prose-sm max-w-none prose-ol:list-decimal prose-ul:list-disc prose-li:ml-4"
                       dangerouslySetInnerHTML={{
                         __html: currentQuestion.description,
                       }}
@@ -1479,21 +1478,21 @@ export default function QuestionBuilderPage({
                   )}
 
                   {/* Sub-Question */}
-                  <div className="p-4 bg-slate-50 rounded border border-slate-300">
+                  <div className="p-4 bg-muted/30 rounded border border-border">
                     <div className="flex items-baseline gap-2 mb-2">
-                      <span className="font-bold text-lg text-slate-900">
+                      <span className="font-bold text-lg text-foreground">
                         ({currentSubQuestion.sub_question_id})
                       </span>
-                      <span className="text-sm text-slate-600">
+                      <span className="text-sm text-muted-foreground">
                         {currentSubQuestion.marks} mark
                         {currentSubQuestion.marks !== 1 ? 's' : ''}
                       </span>
-                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                      <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
                         {currentSubQuestionTypeLabel}
                       </span>
                     </div>
                     <div
-                      className="preview-content text-slate-800 prose prose-sm max-w-none prose-ol:list-decimal prose-ul:list-disc prose-li:ml-4 mb-3"
+                      className="preview-content text-foreground prose prose-sm max-w-none prose-ol:list-decimal prose-ul:list-disc prose-li:ml-4 mb-3"
                       dangerouslySetInnerHTML={{
                         __html: currentSubQuestion.question,
                       }}
@@ -1506,10 +1505,10 @@ export default function QuestionBuilderPage({
                           {currentSubQuestion.options.map((option, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200"
+                              className="flex items-center gap-3 p-2 bg-card rounded border border-border"
                             >
-                              <div className="w-4 h-4 border-2 border-slate-400 rounded-full"></div>
-                              <span className="text-sm text-slate-700">
+                              <div className="w-4 h-4 border-2 border-border rounded-full"></div>
+                              <span className="text-sm text-foreground">
                                 <strong>{option.label}</strong>
                               </span>
                             </div>

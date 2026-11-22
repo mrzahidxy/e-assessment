@@ -4,17 +4,20 @@ import { useState } from "react"
 import Link from "next/link"
 import { AdminHeader } from "@/components/admin-header"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+import { StatePanel } from "@/components/ui/state-panel"
+import { PageShell } from "@/components/ui/page-shell"
 import { FileText, Plus, ShieldAlert } from "lucide-react"
 import { useQuestions } from "@/hooks/queries/useQuestions"
-import { formatStatusLabel, getStatusTone } from "@/lib/helpers/questions"
+import { formatStatusLabel, getStatusVariant } from "@/lib/helpers/questions"
 import type { PaperRecord } from "@/types/questions"
 
 const PAGE_SIZE = 10
 
 export default function AdminPapersPage() {
   const [page, setPage] = useState(1)
-  const { data, isLoading, isError, error } = useQuestions({ page, limit: PAGE_SIZE })
+  const { data, isLoading, isError, error, refetch } = useQuestions({ page, limit: PAGE_SIZE })
   const papers = (data?.data ?? []) as PaperRecord[]
   const meta = data?.meta ?? {
     page,
@@ -40,24 +43,24 @@ export default function AdminPapersPage() {
     meta.totalItems === 0 ? 0 : Math.min(meta.totalItems, (meta.page - 1) * meta.limit + papers.length)
 
   return (
-    <div className="min-h-screen bg-muted/40">
+    <div className="min-h-screen bg-background">
       <AdminHeader title="Question Papers" />
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <PageShell width="compact">
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">All Papers</h1>
-            <p className="text-sm text-muted-foreground">Create, view, and manage assessments</p>
+            <h1 className="page-title">All Papers</h1>
+            <p className="page-description">Create, view, and manage assessments</p>
           </div>
           <div className="flex gap-3">
             <Link href="/admin/security">
-              <Button variant="outline" size="sm" className="gap-2 px-4 shadow-sm">
+              <Button variant="outline" size="sm" className="gap-2">
                 <ShieldAlert className="w-3 h-3" />
                 Security
               </Button>
             </Link>
             <Link href="/admin/questions/create-paper">
-              <Button size="sm" className="gap-2 px-4 shadow-sm">
+              <Button size="sm" className="gap-2">
                 <Plus className="w-3 h-3" />
                 Create
               </Button>
@@ -65,16 +68,40 @@ export default function AdminPapersPage() {
           </div>
         </div>
 
-        {isLoading && <p className="text-sm text-muted-foreground mb-4">Loading questions...</p>}
+        {isLoading && (
+          <StatePanel
+            kind="loading"
+            title="Loading question papers"
+            className="mb-4"
+          />
+        )}
         {isError && (
-          <p className="text-sm text-destructive mb-4">
-            Failed to load questions: {error instanceof Error ? error.message : "Unknown error"}
-          </p>
+          <StatePanel
+            kind="error"
+            title="Couldn’t load question papers"
+            description={error instanceof Error ? error.message : "Please try again."}
+            action={
+              <Button variant="outline" size="sm" onClick={() => void refetch()}>
+                Try again
+              </Button>
+            }
+            className="mb-4"
+          />
         )}
         {!isLoading && !isError && papers.length === 0 && (
-          <Card className="p-8 text-sm text-muted-foreground border border-border/60 shadow-sm">
-            No papers match the current filters.
-          </Card>
+          <StatePanel
+            kind="empty"
+            title="No question papers yet"
+            description="Create your first paper to get started."
+            action={
+              <Button size="sm" className="gap-2" asChild>
+                <Link href="/admin/questions/create-paper">
+                  <Plus className="w-3 h-3" />
+                  Create question paper
+                </Link>
+              </Button>
+            }
+          />
         )}
 
         {papers.length > 0 && (
@@ -88,44 +115,37 @@ export default function AdminPapersPage() {
                 return (
                   <Card
                     key={paper.id}
-                    className="p-5 flex items-center justify-between gap-5 border border-border/60 bg-background shadow-sm hover:shadow-md hover:border-primary/30 transition rounded-2xl"
+                    className="flex flex-col gap-3 p-4 transition hover:border-primary/40 hover:shadow-md sm:p-5"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                        <FileText className="w-5 h-5" />
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <FileText className="h-5 w-5" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-base text-foreground truncate max-w-md">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="line-clamp-2 break-words text-base font-semibold text-foreground">
                           {paper.title}
                         </h3>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="mt-1 line-clamp-2 break-words text-xs text-muted-foreground">
                           {description} • {questionCount} questions
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStatusTone(
-                          paper.status
-                        )}`}
-                      >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                      <Badge variant={getStatusVariant(paper.status)}>
                         {statusLabel}
-                      </span>
-                      <Link href={`/admin/questions/edit-paper/${paper.id}`}>
-                        <Button size="sm" className="px-4 hover:shadow-sm" title="Edit paper details">
-                          Edit
-                        </Button>
-                      </Link>
-                      <Link href={`/admin/questions/${paper.id}`}>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="px-4 hover:shadow-sm"
-                          title="View paper"
-                        >
-                          View
-                        </Button>
-                      </Link>
+                      </Badge>
+                      <div className="ml-auto flex items-center gap-2">
+                        <Link href={`/admin/questions/edit-paper/${paper.id}`}>
+                          <Button size="sm" title="Edit paper details">
+                            Edit
+                          </Button>
+                        </Link>
+                        <Link href={`/admin/questions/${paper.id}`}>
+                          <Button size="sm" variant="outline" title="View paper">
+                            View
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </Card>
                 )
@@ -150,7 +170,7 @@ export default function AdminPapersPage() {
             </div>
           </>
         )}
-      </main>
+      </PageShell>
     </div>
   )
 }

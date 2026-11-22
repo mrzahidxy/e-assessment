@@ -25,12 +25,12 @@ export const formatStatusLabel = (value?: string) => {
     .join(" ")
 }
 
-export const getStatusTone = (value?: string) => {
+export const getStatusVariant = (value?: string): "success" | "warning" | "info" | "muted" => {
   const normalized = value?.toLowerCase()
   if (normalized === "published" || normalized === "active") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700"
+    return "success"
   }
-  if (normalized === "draft") return "border-slate-200 bg-slate-50 text-slate-600"
-  if (normalized === "scheduled") return "border-blue-200 bg-blue-50 text-blue-700"
-  return "border-slate-200 bg-slate-50 text-slate-600"
+  if (normalized === "scheduled") return "info"
+  if (normalized === "pending") return "warning"
+  return "muted"
 }

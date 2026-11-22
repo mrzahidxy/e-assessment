@@ -4,7 +4,10 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin-header";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StatePanel } from "@/components/ui/state-panel";
 import { Card } from "@/components/ui/card";
+import { PageShell } from "@/components/ui/page-shell";
 import { ArrowLeft, ChevronRight, UserRound } from "lucide-react";
 import AccessRequests from "@/components/access-requests";
 import { useSubmissions } from "@/hooks/queries/useSubmissions";
@@ -22,7 +25,7 @@ export default function AdminQuestionPage({
     data: submissions = [],
     isLoading: isLoadingSubmissions,
     isError: isSubmissionsError,
-    error: submissionsError,
+    refetch: refetchSubmissions,
   } = useSubmissions(id);
 
   const paperTitle = submissions[0]?.paper?.title ?? "Question Paper";
@@ -37,7 +40,7 @@ export default function AdminQuestionPage({
     <div className="min-h-screen bg-background">
       <AdminHeader title="Question Paper" />
 
-      <main className="max-w-6xl mx-auto px-3 py-5 space-y-4">
+      <PageShell className="space-y-4">
         <Card className="p-3 shadow-none border-border">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-2">
@@ -106,24 +109,25 @@ export default function AdminQuestionPage({
             </div>
             <div className="space-y-2 p-3">
               {isLoadingSubmissions && (
-                <Card className="p-2.5 text-xs text-muted-foreground shadow-none border-border">
-                  Loading submissions...
-                </Card>
+                <StatePanel kind="loading" title="Loading submissions" compact />
               )}
               {isSubmissionsError && (
-                <Card className="p-2.5 text-xs text-destructive shadow-none border-border">
-                  Failed to load submissions:{" "}
-                  {submissionsError instanceof Error
-                    ? submissionsError.message
-                    : "Unknown error"}
-                </Card>
+                <StatePanel
+                  kind="error"
+                  title="Couldn’t load submissions"
+                  description="Please try again."
+                  action={
+                    <Button variant="outline" size="sm" onClick={() => void refetchSubmissions()}>
+                      Try again
+                    </Button>
+                  }
+                  compact
+                />
               )}
               {!isLoadingSubmissions &&
                 !isSubmissionsError &&
                 submissions.length === 0 && (
-                  <Card className="p-2.5 text-xs text-muted-foreground shadow-none border-border">
-                    No submissions yet.
-                  </Card>
+                  <StatePanel kind="empty" title="No submissions yet" compact />
                 )}
               {!isSubmissionsError &&
                 submissions.map((submission) => {
@@ -131,10 +135,8 @@ export default function AdminQuestionPage({
                     submission.status === "REVIEWED"
                       ? "Graded"
                       : "Pending review";
-                  const statusTone =
-                    submission.status === "REVIEWED"
-                      ? "bg-success/15 text-success"
-                      : "bg-yellow-500/15 text-yellow-700";
+                  const statusVariant =
+                    submission.status === "REVIEWED" ? "success" : "warning";
                   const submittedAt = formatDate(
                     submission.submittedAt ?? submission.createdAt
                   );
@@ -143,21 +145,19 @@ export default function AdminQuestionPage({
                     <Link
                       key={submission.id}
                       href={`/admin/questions/${id}/submissions/${submission.id}`}
-                      className="flex items-center gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-xs shadow-none transition hover:border-primary/40 hover:bg-muted/40"
+                      className="flex flex-wrap items-center gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-xs transition hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                     >
                       <div className="h-9 w-9 rounded-full bg-muted/70 flex items-center justify-center text-muted-foreground">
                         <UserRound className="h-4 w-4" />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold text-foreground text-sm truncate">
                             {submission.student?.name ?? "Unknown Student"}
                           </p>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] ${statusTone}`}
-                          >
+                          <Badge variant={statusVariant} className="text-[10px]">
                             {statusLabel}
-                          </span>
+                          </Badge>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                           <span>
@@ -177,7 +177,7 @@ export default function AdminQuestionPage({
             </div>
           </Card>
         )}
-      </main>
+      </PageShell>
     </div>
   );
 }

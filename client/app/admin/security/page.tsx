@@ -5,6 +5,7 @@ import { Copy, RotateCcw, ShieldAlert, WandSparkles } from "lucide-react"
 import { AdminHeader } from "@/components/admin-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { PageShell } from "@/components/ui/page-shell"
 import { backendApiFetch } from "@/lib/api-client"
 
 type RotateUnlockResponse = {
@@ -63,13 +64,13 @@ export default function AdminSecurityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/40">
+    <div className="min-h-screen bg-background">
       <AdminHeader title="Security Code" />
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
+      <PageShell width="small">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">Exam Lock Code</h1>
+            <h1 className="page-title">Exam Lock Code</h1>
             <p className="text-sm text-muted-foreground">
               Generate a new admin unlock code for the exam lockdown screen.
             </p>
@@ -85,7 +86,7 @@ export default function AdminSecurityPage() {
         </div>
 
         <div className="grid gap-4">
-          <Card className="p-5 border border-border/60 bg-background shadow-sm rounded-2xl">
+          <Card className="p-5">
             <div className="flex items-start gap-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 <ShieldAlert className="h-5 w-5" />
@@ -100,7 +101,7 @@ export default function AdminSecurityPage() {
             </div>
           </Card>
 
-          <Card className="p-5 border border-border/60 bg-background shadow-sm rounded-2xl">
+          <Card className="p-5">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <WandSparkles className="h-4 w-4 text-primary" />
@@ -141,7 +142,7 @@ export default function AdminSecurityPage() {
             </div>
           </Card>
         </div>
-      </main>
+      </PageShell>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageShell } from "@/components/ui/page-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,13 +98,13 @@ export default function CreatePaperPage() {
     <div className="min-h-screen bg-background">
       <AdminHeader title="Create Question Paper" />
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <PageShell width="narrow" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
               Step 1
             </p>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="page-title">
               Paper details
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -238,7 +239,7 @@ export default function CreatePaperPage() {
             </div>
           </form>
         </Card>
-      </main>
+      </PageShell>
     </div>
   );
 }

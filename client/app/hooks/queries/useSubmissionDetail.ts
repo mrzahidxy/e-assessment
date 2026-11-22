@@ -11,6 +11,7 @@ export function useSubmissionDetail(submissionId?: string) {
   return useQuery({
     queryKey: ["submission", submissionId],
     enabled: isAuthenticated && !!submissionId,
+    retry: false,
     queryFn: async () => {
       if (!submissionId) return null;
 
